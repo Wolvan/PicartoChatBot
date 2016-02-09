@@ -23,7 +23,7 @@ function handleChatMsg(data) {
         var i = 0;
         var isNegative = false;
         var roll = 0;
-        var modifier = 0;
+        var modifiers = [];
         var dieTooHigh = false;
         
         dice.forEach(function (item) {
@@ -47,7 +47,7 @@ function handleChatMsg(data) {
                     rolls.push(roll);
                 }
             } else {
-                modifier = parseInt(item);
+                modifiers.push(parseInt(item));
             }
         });
         
@@ -58,8 +58,10 @@ function handleChatMsg(data) {
         
         var sum = 0;
         rolls.forEach(function (item) { sum += item; });
-        if (modifier) sum += modifier;
-        var msg = " { " + rolls.join(" + ") + " }" + (modifier ? (" + " + modifier) : "") + " = " + sum;
+        modifiers.forEach(function (modifier) {
+            sum += modifier;
+        });
+        var msg = " { " + rolls.join(" + ") + " }" + (modifiers.length ? (" + " + modifiers.join(" + ")).replace(/\+ -/g, "- ") : "") + " = " + sum;
         api.Messages.send(msg.length > 255 ? sum : msg);
     }
 }
@@ -67,7 +69,7 @@ function handleChatMsg(data) {
 module.exports = {
     meta_inf: {
         name: "Roll the dice",
-        version: "1.0.0",
+        version: "1.1.0",
         description: "A simple dice rolling plugin.",
         author: "Wolvan"
     },

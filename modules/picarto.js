@@ -26,6 +26,17 @@ function getToken(stream, name) {
             done: function (error, window) {
                 if (error) { console.log(error); reject("jsdom error"); }
                 var $ = window.$;
+                if ($("#bottomLeft #chat_disabled_info").length) {
+                    getROToken(stream).then(function (res) {
+                        resolve({
+                            token: res.token, 
+                            readOnly: res.readOnly
+                        });
+                    }).catch(function (err) {
+                        reject(err);
+                    });
+                    return;
+                }
                 var sock = window.socket;
                 try {
                     sock.removeAllListeners("nameResp");
@@ -38,7 +49,10 @@ function getToken(stream, name) {
                                     sock.disconnect();
                                     $.get("/modules/channel-chat", function (a) {
                                         $("#channel_chat").html(a);
-                                        resolve(getTokenFromHTML($("body").html()));
+                                        resolve({
+                                            token: getTokenFromHTML($("body").html()), 
+                                            readOnly: false
+                                        });
                                     });
                                 } else {
                                     reject(resp);
@@ -69,7 +83,10 @@ function getROToken(stream) {
                 if (error) { console.log(error); reject("jsdom error"); }
                 try {
                     var $ = window.$;
-                    resolve(getTokenFromHTML($("body").html()));
+                    resolve({
+                        token: getTokenFromHTML($("body").html()), 
+                        readOnly: true
+                    });
                 } catch (e) {
                     reject("channelDoesNotExist");
                 }

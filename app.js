@@ -28,20 +28,41 @@ function initPluginLoader() {
     api.plugin_manager = {
         load: function (file_id, quiet) {
             console.log("[Plugin]Plugin requests loading of " + file_id);
-            plugin_loader.loadPlugin(file_id, quiet);
+            return plugin_loader.loadPlugin(file_id, quiet);
         },
         unload: function (file_id, quiet) {
             console.log("[Plugin]Plugin requests unloading of " + file_id);
-            plugin_loader.unloadPlugin(file_id, quiet);
+            return plugin_loader.unloadPlugin(file_id, quiet);
         },
         start: function (file_id, quiet) {
             console.log("[Plugin]Plugin requests starting of " + file_id);
-            plugin_loader.startedPlugins(file_id, quiet);
+            return plugin_loader.startedPlugins(file_id, quiet);
         },
         stop: function (file_id, quiet) {
             console.log("[Plugin]Plugin requests stopping of " + file_id);
-            plugin_loader.stopPlugin(file_id, quiet);
+            return plugin_loader.stopPlugin(file_id, quiet);
         },
+        listPlugins: function () {
+            return plugin_loader.listPlugins();
+        },
+        getPlugin: function (fileID) {
+            return plugin_loader.getPlugin(fileID);
+        },
+        getPluginInfo: function (fileID) {
+            return plugin_loader.getPluginInfo(fileID);
+        },
+        isPluginLoaded: function (fileID) {
+            return plugin_loader.isPluginLoaded(fileID);
+        },
+        listLoadedPlugins: function () {
+            return plugin_loader.getLoadedPlugins()
+        },
+        isPluginRunning: function (fileID) {
+            return plugin_loader.isPluginRunning(fileID);
+        },
+        getStartedPlugins: function () {
+            return plugin_loader.getStartedPlugins();
+        }
     }
 }
 
@@ -179,7 +200,7 @@ plugin_loader.listPlugins().forEach(function (item) {
 });
 
 // Load commandline args as env variables
-commander.version("1.0.0").usage("[options]")
+commander.version("1.1.0").usage("[options]")
 .option("-c, --channel <Picarto Channel>", "Set channel to connect to.")
 .option("-n, --botname <Bot name>", "Set the bot's name.")
 .option("-t, --token <Token>", "Use an already existing token to login")
@@ -194,10 +215,14 @@ if (process.env.PICARTO_TOKEN) {
     initSocket(process.env.PICARTO_TOKEN);
 } else if (process.env.PICARTO_CHANNEL && process.env.PICARTO_NAME) {
     console.log("Attempting to connect, this might take a moment. Please be patient...");
-    picarto.getToken(process.env.PICARTO_CHANNEL, process.env.PICARTO_NAME).then(function (token) { initSocket(token); }).catch(function (reason) { console.log("Token acquisition failed: " + reason); process.exit(1); });
+    picarto.getToken(process.env.PICARTO_CHANNEL, process.env.PICARTO_NAME).then(function (res) {
+        initSocket(res.token);
+        api.readOnly = res.readOnly;
+        if (res.readOnly) console.log("Chat disabled guest login! Establishing ReadOnly Connection.");
+    }).catch(function (reason) { console.log("Token acquisition failed: " + reason); process.exit(1); });
 } else if (process.env.PICARTO_CHANNEL) {
     console.log("Attempting ReadOnly connection, please be patient...");
-    picarto.getROToken(process.env.PICARTO_CHANNEL).then(function (token) { api.readOnly = true; initSocket(token); }).catch(function (reason) { console.log("Token acquisition failed: " + reason); process.exit(1); });
+    picarto.getROToken(process.env.PICARTO_CHANNEL).then(function (res) { api.readOnly = res.readOnly; initSocket(res.token); }).catch(function (reason) { console.log("Token acquisition failed: " + reason); process.exit(1); });
 }
 else {
     SET_PICARTO_LOGIN = 1;
@@ -443,14 +468,18 @@ process.stdin.on('readable', function () {
             } else if (SET_PICARTO_LOGIN === 2) {
                 if (!chunk.toString().trim()) { 
                     console.log("Attempting ReadOnly connection, please be patient...");
-                    picarto.getROToken(process.env.PICARTO_CHANNEL).then(function (token) { initSocket(token); api.readOnly = true; }).catch(function (reason) { console.log("Token acquisition failed: " + reason); process.exit(1); });
+                    picarto.getROToken(process.env.PICARTO_CHANNEL).then(function (res) { initSocket(res.token); api.readOnly = res.readOnly; }).catch(function (reason) { console.log("Token acquisition failed: " + reason); process.exit(1); });
                     SET_PICARTO_LOGIN = 0;
                     return;
                 }
                 process.env.PICARTO_NAME = chunk.toString().trim();
                 SET_PICARTO_LOGIN = 0;
                 console.log("Attempting to connect, this might take a moment. Please be patient...");
-                picarto.getToken(process.env.PICARTO_CHANNEL, process.env.PICARTO_NAME).then(function (token) { initSocket(token); }).catch(function (reason) { console.log("Token acquisition failed: " + reason); process.exit(1); });
+                picarto.getToken(process.env.PICARTO_CHANNEL, process.env.PICARTO_NAME).then(function (res) {
+                    initSocket(res.token);
+                    api.readOnly = res.readOnly;
+                    if (res.readOnly) console.log("Chat disabled guest login! Establishing ReadOnly Connection.");
+                }).catch(function (reason) { console.log("Token acquisition failed: " + reason); process.exit(1); });
             }
             return;
         }
