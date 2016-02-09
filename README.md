@@ -16,6 +16,7 @@ This is an extendable bot for Picarto.TV chats. By itself it does nothing, that'
 	* `roll_dice.pbot.js` A dice rolling script that allows to roll any number of dice
 	* `greetings.pbot.js` Make the bot greet people or say goodbye
 	* `message_output.pbot.js` Print messages from chat to your output
+	* `request_q.pbot.js` A queue plugin for requests or commissions
 
 ## Install the bot
 ### from npm (globally)
