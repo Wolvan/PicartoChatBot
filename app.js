@@ -28,20 +28,41 @@ function initPluginLoader() {
     api.plugin_manager = {
         load: function (file_id, quiet) {
             console.log("[Plugin]Plugin requests loading of " + file_id);
-            plugin_loader.loadPlugin(file_id, quiet);
+            return plugin_loader.loadPlugin(file_id, quiet);
         },
         unload: function (file_id, quiet) {
             console.log("[Plugin]Plugin requests unloading of " + file_id);
-            plugin_loader.unloadPlugin(file_id, quiet);
+            return plugin_loader.unloadPlugin(file_id, quiet);
         },
         start: function (file_id, quiet) {
             console.log("[Plugin]Plugin requests starting of " + file_id);
-            plugin_loader.startedPlugins(file_id, quiet);
+            return plugin_loader.startedPlugins(file_id, quiet);
         },
         stop: function (file_id, quiet) {
             console.log("[Plugin]Plugin requests stopping of " + file_id);
-            plugin_loader.stopPlugin(file_id, quiet);
+            return plugin_loader.stopPlugin(file_id, quiet);
         },
+        listPlugins: function () {
+            return plugin_loader.listPlugins();
+        },
+        getPlugin: function (fileID) {
+            return plugin_loader.getPlugin(fileID);
+        },
+        getPluginInfo: function (fileID) {
+            return plugin_loader.getPluginInfo(fileID);
+        },
+        isPluginLoaded: function (fileID) {
+            return plugin_loader.isPluginLoaded(fileID);
+        },
+        listLoadedPlugins: function () {
+            return plugin_loader.getLoadedPlugins()
+        },
+        isPluginRunning: function (fileID) {
+            return plugin_loader.isPluginRunning(fileID);
+        },
+        getStartedPlugins: function () {
+            return plugin_loader.getStartedPlugins();
+        }
     }
 }
 
