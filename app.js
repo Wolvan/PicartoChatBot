@@ -8,6 +8,7 @@ var commander = require("commander");
 var EventEmitter = require("events");
 var storage = require("node-persist");
 var picarto = require("./modules/picarto.js");
+var http = require('http');
 
 var socket;
 var plugin_loader;
@@ -64,6 +65,24 @@ function initPluginLoader() {
             return plugin_loader.getStartedPlugins();
         }
     }
+}
+
+function initServer(){
+    var server = http.createServer(function(req, res) {
+        res.writeHead(200);
+        api.Events.emit("http",req,res);
+        res.end();
+    });
+    
+    var port = 10001;
+    server.listen(port, function(error) {
+        if (error) {
+        console.error("Unable to listen on port", port, error);
+        return;
+        } else {
+            console.log("HTTP Server started on port " + port);
+        }
+    });
 }
 
 function initSocket(token) {
@@ -208,6 +227,8 @@ commander.version("1.1.0").usage("[options]")
 if (commander.token) process.env.PICARTO_TOKEN = commander.token;
 if (commander.botname) process.env.PICARTO_NAME = commander.botname;
 if (commander.channel) process.env.PICARTO_CHANNEL = commander.channel;
+
+initServer();
 
 var SET_PICARTO_LOGIN = 0;
 if (process.env.PICARTO_TOKEN) {
