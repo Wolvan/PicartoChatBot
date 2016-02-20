@@ -1,0 +1,24 @@
+doctype html
+html
+  head
+    title #{records[0].channel}
+  body
+    #container
+        p 
+            a(href="/logger/") Channel Index
+        p.
+            #{records[0].channel}
+        table
+            -function prettyDate(dateString){
+                -var date =  new Date(dateString);
+                -var d = date.getDate();
+                -var monthNames = [ "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" ];
+                -var m = monthNames[date.getMonth()];
+                -var y = date.getFullYear();
+                -return d+' '+m+' '+y;
+            -} 
+            tbody
+                each record in records
+                    tr 
+                        td 
+                            a(href="/logger/"+record.channel+"/#{record.date.split('/').join('_')}") #{record.date}
