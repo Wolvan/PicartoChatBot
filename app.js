@@ -515,7 +515,7 @@ process.stdin.on('readable', function () {
                 break;
             case "reconnect":
                 socket.disconnect();
-                socket.reconnect();
+                socket.connect();
                 break;
             case "help":
                 printHelp();
