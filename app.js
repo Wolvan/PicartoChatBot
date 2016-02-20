@@ -644,7 +644,7 @@ process.stdin.on('readable', function () {
             case "reconnect":
                 if(args[0] && typeof socket[args[0].toLowerCase()] !== 'undefined'){
                     socket[args[0].toLowerCase()].disconnect();
-                    socket[args[0].toLowerCase()].reconnect();
+                    socket[args[0].toLowerCase()].connect();
                     break;
                 } else if(!args[0]){
                     console.log("Please specify channel");
