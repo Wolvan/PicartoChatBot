@@ -1,0 +1,28 @@
+doctype html
+html
+  head
+    title #{record.channel} #{record.date} 
+  body
+    #container
+        p 
+            a(href="/logger/"+record.channel) #{record.channel}
+        table
+            -function prettyDate(dateString){
+                -var date =  new Date(dateString);
+                -var d = date.getDate();
+                -var monthNames = [ "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" ];
+                -var m = monthNames[date.getMonth()];
+                -var y = date.getFullYear();
+                -var h = date.getHours();
+                -var min = date.getMinutes();
+                -var s = date.getSeconds();
+                -return d+' '+m+' '+y+' '+h+':'+min+':'+s;
+            -} 
+            tbody
+                each message in record.messages
+                    tr 
+                        td 
+                            i #{prettyDate(message.timestamp)}
+                        td 
+                            b(style="color:"+message.color) #{message.username}
+                        td #{message.msg}

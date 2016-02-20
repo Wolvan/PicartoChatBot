@@ -5,14 +5,14 @@ var onCooldown = false;
 function getReq(msg){ 
     var users = storage.getItem("requests") || [{username:msg.username, requests:[]}];
     for(var user of users){
-        if(msg.username == user.username) return user.requests;
+        if(msg.username.toLowerCase() == user.username.toLowerCase()) return user.requests;
     }
     return [];
 }
 function delReq(msg,index){
     var users = storage.getItem("requests") || [{username:msg.username, requests:[]}];
     for(var user of users){
-        if(msg.username == user.username){
+        if(msg.username.toLowerCase() == user.username.toLowerCase()){
             var requests = user.requests;
             var removed = requests.splice(index, 1)[0];
             user.requests = requests;
@@ -24,7 +24,10 @@ function delReq(msg,index){
 function addReq(msg,request){ 
     var users = storage.getItem("requests") || [{username:msg.username, requests:[]}];
     for(var user of users){
-        if(msg.username == user.username){
+        if(msg.username.toLowerCase() == user.username.toLowerCase()){
+            if(user.length > 25){
+                api.Messages.send("Too many requests, maximum of 25");
+            }
             user.requests.push(request);
             storage.setItem("requests", users);
             return;
@@ -44,11 +47,18 @@ function handleMsg(data) {
         var args = data.msg.split(" ")
         args.splice(0, 1);
         if (!args[0] || args[0].toLowerCase() === "list") {
-            var requests = getReq(data);
+            var user =  data.msg.split(" ");
+            if(user[2]){
+                var requests = getReq({username:user[2]});
+            } else {
+                var requests = getReq(data);
+            }
             api.Messages.send("There currently " + (requests.length !== 1 ? "are" : "is") + " " + (!requests.length ? "no" : requests.length) + " request" + (requests.length !== 1 ? "s" : "") + " in the queue" + (requests.length ? ":" : "."));
             for (var i = 0; i < requests.length; i++) {
                 setTimeout(function (index, request) {
-                    api.Messages.send((index + 1) + " - " + request);
+                    if(index < 10){
+                        api.Messages.send((index + 1) + " - " + request);
+                    }
                 }.bind(this, i, requests[i]), (i + 1) * 1000);
             }
             onCooldown = true;
@@ -75,18 +85,24 @@ function handleMsg(data) {
     }
 }
 
-//busted
 function servePage(req,res) {
     var path = req.url.split('/');
-    if(path[1] == "request"){
-        var requests = storage.getItem("requests") || [];
-        var css = "<style> h1 { -webkit-text-stroke: 1px black;color: white;text-shadow: 3px 3px 0 #000,-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;}</style>";
-        res.write(css);
-        res.write("<h1>");
-        for(request of requests){
-            res.write(request+"<br />")
+    if(path.length > 2 && path[1].toLowerCase() == "request"){
+        var requests = getReq({username: path[2]});
+        if(path.length > 3 && path[3].toLowerCase() == 'json'){
+            res.write(JSON.stringify(requests));
+        }else{
+            api.jade.renderFile(process.cwd() + '/views/request.jade',{requests:requests}, function(err,html){
+                res.write(html);
+            });
         }
-        res.write("</h1>");
+    } else if(path.length > 1 && path[1].toLowerCase() == "request"){
+        res.writeHead(301,
+            {Location: '/'}
+        );
+    }else{
+        if(req.collection == null) req.collection = [];
+        req.collection.push(["Request","/request/[picarto username]","Displays [uername]'s requests"]);
     }
 }
 module.exports = {
@@ -94,7 +110,7 @@ module.exports = {
         name: "Request Queue",
         version: "1.1.0",
         description: "Store requests for later.",
-        author: "Wolvan"
+        author: "Wolvan & Amm"
     },
     load: function (_api, _storage) {
         api = _api;

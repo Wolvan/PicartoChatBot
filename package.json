@@ -14,7 +14,8 @@
     "require-reload": "^0.2.2",
     "socket.io": "^1.4.5",
     "socket.io-client": "^1.4.5",
-    "sync-request": "^3.0.0"
+    "sync-request": "^3.0.0",
+    "jade": "*"
   },
   "description": "PicartoChatListener",
   "main": "app.js",
