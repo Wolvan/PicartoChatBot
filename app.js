@@ -94,8 +94,7 @@ function initServer(){
         console.error("Unable to listen on port", api.port, error);
         return;
         } else {
-            console.log("HTTP Server started on port " + api.port);
-            console.log("Enter " + api.url + api.port + " in a browser to access.");
+            console.log("Enter " + api.url + ":" + api.port + " in a browser to access web functions.");
         }
     });
 }
