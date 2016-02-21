@@ -1,5 +1,6 @@
 ﻿var api;
 var storage;
+var onCooldown = false;
 
 function addRequestToQEvent(request) {
     var requests = storage.getItem("requests") || [];
@@ -12,6 +13,7 @@ function handleMsg(data) {
         var args = data.msg.split(" ")
         args.splice(0, 1);
         if (!args[0] || args[0].toLowerCase() === "list") {
+            if (onCooldown) return;
             var requests = storage.getItem("requests") || [];
             api.Messages.send("There currently " + (requests.length !== 1 ? "are" : "is") + " " + (!requests.length ? "no" : requests.length) + " request" + (requests.length !== 1 ? "s" : "") + " in the queue" + (requests.length ? ":" : "."));
             for (var i = 0; i < requests.length; i++) {
@@ -19,6 +21,8 @@ function handleMsg(data) {
                     api.Messages.send((index + 1) + " - " + request);
                 }.bind(this, i, requests[i]), (i + 1) * 1000);
             }
+            onCooldown = true;
+            setTimeout(function () { onCooldown = false; }, 15 * 1000);
         } else if (args[0] === "?" || args[0].toLowerCase() === "help") {
             api.Messages.send("Add, delete or list requests! You can also raffle a random request!");
         } else if (args[0].toLowerCase() === "raffle") {
@@ -59,7 +63,7 @@ function handleMsg(data) {
 module.exports = {
     meta_inf: {
         name: "Request Queue",
-        version: "1.0.0",
+        version: "1.1.0",
         description: "Store requests for later.",
         author: "Wolvan"
     },
