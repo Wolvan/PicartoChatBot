@@ -20,14 +20,14 @@
   "description": "PicartoChatListener",
   "main": "app.js",
   "name": "picarto-chat-bot",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Wolvan/PicartoChatBot.git"
+    "url": "git+https://github.com/joelaw9/PicartoChatBot.git"
   },
   "keywords": [
     "picarto",
@@ -37,7 +37,7 @@
   ],
   "license": "GPL-3.0",
   "bugs": {
-    "url": "https://github.com/Wolvan/PicartoChatBot/issues"
+    "url": "https://github.com/joelaw9/PicartoChatBot/issues"
   },
-  "homepage": "https://github.com/Wolvan/PicartoChatBot#readme"
+  "homepage": "https://github.com/joelaw9/PicartoChatBot#readme"
 }
