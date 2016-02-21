@@ -4,18 +4,18 @@ var onCooldown = false;
 
 function getReq(msg){ 
     var users = storage.getItem("requests") || [{username:msg.username, requests:[]}];
-    for(var user of users){
-        if(msg.username.toLowerCase() == user.username.toLowerCase()) return user.requests;
+    for(var user in users){
+        if(msg.username.toLowerCase() == users[user].username.toLowerCase()) return users[user].requests;
     }
     return [];
 }
 function delReq(msg,index){
     var users = storage.getItem("requests") || [{username:msg.username, requests:[]}];
-    for(var user of users){
-        if(msg.username.toLowerCase() == user.username.toLowerCase()){
-            var requests = user.requests;
+    for(var user in users){
+        if(msg.username.toLowerCase() == users[user].username.toLowerCase()){
+            var requests = users[user].requests;
             var removed = requests.splice(index, 1)[0];
-            user.requests = requests;
+            users[user].requests = requests;
             storage.setItem("requests", users);
             return removed;
         }
@@ -23,12 +23,12 @@ function delReq(msg,index){
 }
 function addReq(msg,request){ 
     var users = storage.getItem("requests") || [{username:msg.username, requests:[]}];
-    for(var user of users){
-        if(msg.username.toLowerCase() == user.username.toLowerCase()){
+    for(var user in users){
+        if(msg.username.toLowerCase() == users[user].username.toLowerCase()){
             if(user.length > 25){
                 api.Messages.send("Too many requests, maximum of 25");
             }
-            user.requests.push(request);
+            users[user].requests.push(request);
             storage.setItem("requests", users);
             return;
         }
