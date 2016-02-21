@@ -223,8 +223,7 @@ if (process.env.PICARTO_TOKEN) {
 } else if (process.env.PICARTO_CHANNEL) {
     console.log("Attempting ReadOnly connection, please be patient...");
     picarto.getROToken(process.env.PICARTO_CHANNEL).then(function (res) { api.readOnly = res.readOnly; initSocket(res.token); }).catch(function (reason) { console.log("Token acquisition failed: " + reason); process.exit(1); });
-}
-else {
+} else {
     SET_PICARTO_LOGIN = 1;
     console.log("No login information given.");
     process.stdout.write("Channel: ");
