@@ -18,6 +18,7 @@ var store = storage.create({ dir: process.cwd() + "/storage/main_app" });
 store.initSync();
 
 api.Events = new EventEmitter;
+api.Events.setMaxListeners(0);
 api.readOnly = false;
 api.jade = jade;
 api.url = "http://localhost";
@@ -89,13 +90,20 @@ function initServer(){
         res.end();
     });
     
-    server.listen(api.port, function(error) {
-        if (error) {
-        console.error("Unable to listen on port", api.port, error);
-        return;
-        } else {
-            console.log("Enter " + api.url + ":" + api.port + " in a browser to access web functions.");
+    server.listen(api.port, function (error) {
+        function waitToPost() {
+            if (!SET_PICARTO_LOGIN) {
+                if (error) {
+                    console.error("Unable to listen on port", api.port, error);
+                    return;
+                } else {
+                    console.log("Enter " + api.url + ":" + api.port + " in a browser to access web functions.");
+                }
+            } else {
+                setTimeout(waitToPost, 1000);
+            }
         }
+        waitToPost();
     });
 }
 
