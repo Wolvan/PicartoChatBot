@@ -9,25 +9,25 @@
     "columnify": "^1.5.4",
     "commander": "^2.9.0",
     "entities": "^1.1.1",
+    "jade": "^1.11.0",
     "jsdom": "^8.0.2",
     "node-persist": "0.0.8",
     "require-reload": "^0.2.2",
     "socket.io": "^1.4.5",
     "socket.io-client": "^1.4.5",
-    "sync-request": "^3.0.0",
-    "jade": "*"
+    "sync-request": "^3.0.0"
   },
   "description": "PicartoChatListener",
   "main": "app.js",
   "name": "picarto-chat-bot",
-  "version": "1.1.1",
+  "version": "1.1.0",
   "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/joelaw9/PicartoChatBot.git"
+    "url": "git+https://github.com/Wolvan/PicartoChatBot.git"
   },
   "keywords": [
     "picarto",
@@ -37,7 +37,7 @@
   ],
   "license": "GPL-3.0",
   "bugs": {
-    "url": "https://github.com/joelaw9/PicartoChatBot/issues"
+    "url": "https://github.com/Wolvan/PicartoChatBot/issues"
   },
-  "homepage": "https://github.com/joelaw9/PicartoChatBot#readme"
+  "homepage": "https://github.com/Wolvan/PicartoChatBot#readme"
 }
