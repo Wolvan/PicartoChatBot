@@ -2,38 +2,38 @@
 var storage;
 
 function getReq(msg){ 
-    var users = storage.getItem("requests") || [{username:msg.username, requests:[]}];
+    var users = storage.getItem("request_store") || [{username:msg.username, requests:[]}];
     for(var user in users){
-        if(msg.username.toLowerCase() == users[user].username.toLowerCase()) return users[user].requests;
+        if(msg.username.toLowerCase() == users[parseInt(user)].username.toLowerCase()) return users[user].requests;
     }
     return [];
 }
 function delReq(msg,index){
-    var users = storage.getItem("requests") || [{username:msg.username, requests:[]}];
+    var users = storage.getItem("request_store") || [{username:msg.username, requests:[]}];
     for(var user in users){
         if(msg.username.toLowerCase() == users[user].username.toLowerCase()){
             var requests = users[user].requests;
             var removed = requests.splice(index, 1)[0];
             users[user].requests = requests;
-            storage.setItem("requests", users);
+            storage.setItem("request_store", users);
             return removed;
         }
     }
 }
 function addReq(msg,request){ 
-    var users = storage.getItem("requests") || [{username:msg.username, requests:[]}];
+    var users = storage.getItem("request_store") || [{username:msg.username, requests:[]}];
     for(var user in users){
         if(msg.username.toLowerCase() == users[user].username.toLowerCase()){
             if(user.length > 25){
                 api.Messages.send("Too many requests, maximum of 25");
             }
             users[user].requests.push(request);
-            storage.setItem("requests", users);
+            storage.setItem("request_store", users);
             return;
         }
     }
     users.push({username:msg.username,requests:[request]});
-    storage.setItem("requests", users);
+    storage.setItem("request_store", users);
     return;
 }
 
@@ -46,16 +46,16 @@ function handleMsg(data) {
         var args = data.msg.split(" ")
         args.splice(0, 1);
         if (!args[0] || args[0].toLowerCase() === "list") {
-            var user =  data.msg.split(" ");
-            if(user[2]){
-                var requests = getReq({username:user[2]});
+            var user = data.msg.split(" ");
+            if (user[2]) {
+                var requests = getReq({ username: user[2] });
             } else {
                 var requests = getReq(data);
             }
             api.Messages.send("There currently " + (requests.length !== 1 ? "are" : "is") + " " + (!requests.length ? "no" : requests.length) + " request" + (requests.length !== 1 ? "s" : "") + " in the queue" + (requests.length ? ":" : "."));
             for (var i = 0; i < requests.length; i++) {
                 setTimeout(function (index, request) {
-                    if(index < 10){
+                    if (index < 10) {
                         api.Messages.send((index + 1) + " - " + request);
                     }
                 }.bind(this, i, requests[i]), (i + 1) * 1000);
@@ -69,11 +69,15 @@ function handleMsg(data) {
                 return;
             }
             api.Messages.send("Do this request: " + requests[Math.floor(Math.random() * requests.length)]);
-        } else if (parseInt(args[0]) || args[0].toLowerCase() === "delete") {
-            if (args[0].toLowerCase() === "delete") args.splice(0, 1);
+        } else if (args[0].toLowerCase() === "delete" || args[0].toLowerCase() === "del" || args[0].toLowerCase() === "rm" || args[0].toLowerCase() === "remove") {
+            args.splice(0, 1);
             var index = parseInt(args[0]) - 1;
-            var removed = delReq(data,index);
+            var removed = delReq(data, index);
             removed ? api.Messages.send("Removed request '" + removed + "'") : api.Messages.send("Request with index " + (index + 1) + " not found.");
+        } else if (parseInt(args[0])) {
+            var requests = getReq(data);
+            var index = parseInt(args[0]) - 1;
+            requests[index] ? api.Messages.send("Request " + (index + 1) + ": " + requests[index]) : api.Messages.send("Request with index " + (index + 1) + " not found.");
         } else {
             if (args[0].toLowerCase() === "add") args.splice(0, 1);
             addReq(data,args.join(" "));
@@ -105,7 +109,7 @@ function servePage(req,res) {
 module.exports = {
     meta_inf: {
         name: "Request Queue",
-        version: "1.1.0",
+        version: "2.0.0",
         description: "Store requests for later.",
         author: "Wolvan & Amm"
     },
