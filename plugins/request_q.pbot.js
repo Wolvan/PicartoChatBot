@@ -1,6 +1,5 @@
 ﻿var api;
 var storage;
-var onCooldown = false;
 
 function getReq(msg){ 
     var users = storage.getItem("requests") || [{username:msg.username, requests:[]}];
@@ -61,8 +60,6 @@ function handleMsg(data) {
                     }
                 }.bind(this, i, requests[i]), (i + 1) * 1000);
             }
-            onCooldown = true;
-            setTimeout(function () { onCooldown = false; }, 15 * 1000);
         } else if (args[0] === "?" || args[0].toLowerCase() === "help") {
             api.Messages.send("Add, delete or list requests! You can also raffle a random request!");
         } else if (args[0].toLowerCase() === "raffle") {
