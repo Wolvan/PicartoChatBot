@@ -8,6 +8,8 @@ var commander = require("commander");
 var EventEmitter = require("events");
 var storage = require("node-persist");
 var picarto = require("./modules/picarto.js");
+var http = require('http');
+var jade = require('jade');
 
 var socket;
 var plugin_loader;
@@ -16,7 +18,11 @@ var store = storage.create({ dir: process.cwd() + "/storage/main_app" });
 store.initSync();
 
 api.Events = new EventEmitter;
+api.Events.setMaxListeners(0);
 api.readOnly = false;
+api.jade = jade;
+api.url = "http://localhost";
+api.port = 10001;
 
 api.sharedStorage = storage.create({ dir: process.cwd() + "/storage/shared_storage" });
 api.sharedStorage.initSync();
@@ -64,6 +70,41 @@ function initPluginLoader() {
             return plugin_loader.getStartedPlugins();
         }
     }
+}
+
+function initServer(){
+    var server = http.createServer(function(req, res) {
+        res.writeHead(200);
+        api.Events.emit("http",req,res);
+        
+        var path = req.url.split('/');
+        if(path.length < 3 && path[1] == ''){
+            api.jade.renderFile(process.cwd() + '/views/index.jade',{urls:req.collection.sort(function(a, b) { 
+                if (a[0] < b[0]) return -1;
+                if (a[0] > b[0]) return 1;
+                return 0;
+            })}, function(err,html){
+                res.write(html);
+            });
+        }
+        res.end();
+    });
+    
+    server.listen(api.port, function (error) {
+        function waitToPost() {
+            if (!SET_PICARTO_LOGIN) {
+                if (error) {
+                    console.error("Unable to listen on port", api.port, error);
+                    return;
+                } else {
+                    console.log("Enter " + api.url + ":" + api.port + " in a browser to access web functions.");
+                }
+            } else {
+                setTimeout(waitToPost, 1000);
+            }
+        }
+        waitToPost();
+    });
 }
 
 function initSocket(token) {
@@ -204,10 +245,16 @@ commander.version("1.1.0").usage("[options]")
 .option("-c, --channel <Picarto Channel>", "Set channel to connect to.")
 .option("-n, --botname <Bot name>", "Set the bot's name.")
 .option("-t, --token <Token>", "Use an already existing token to login")
+.option("-p, --port <Port>","Set a custom port")
+.option("-u, --url <URL>","Set a custom URL")
 .parse(process.argv);
 if (commander.token) process.env.PICARTO_TOKEN = commander.token;
 if (commander.botname) process.env.PICARTO_NAME = commander.botname;
 if (commander.channel) process.env.PICARTO_CHANNEL = commander.channel;
+if (commander.port) api.port = commander.port;
+if (commander.url) api.url = commander.url;
+
+initServer();
 
 var SET_PICARTO_LOGIN = 0;
 if (process.env.PICARTO_TOKEN) {

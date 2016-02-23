@@ -1,0 +1,16 @@
+doctype html
+html
+  head
+    title Index
+  body
+    #container
+        p Here is a list of the avaliable URLs
+        table
+            each url in urls
+                tr 
+                    td 
+                        b #{url[0]}
+                    td 
+                        i #{url[1]}
+                    td -
+                    td #{url[2]}
