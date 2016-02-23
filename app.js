@@ -241,7 +241,7 @@ plugin_loader.listPlugins().forEach(function (item) {
 });
 
 // Load commandline args as env variables
-commander.version("1.1.0").usage("[options]")
+commander.version("1.2.0").usage("[options]")
 .option("-c, --channel <Picarto Channel>", "Set channel to connect to.")
 .option("-n, --botname <Bot name>", "Set the bot's name.")
 .option("-t, --token <Token>", "Use an already existing token to login")
