@@ -227,3 +227,4 @@ plugins/*
 !plugins/message_output.pbot.js
 !plugins/request_q.pbot.js
 !plugins/roll_dice.pbot.js
+!plugins/logger.pbot.js
