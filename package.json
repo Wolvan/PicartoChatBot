@@ -15,8 +15,7 @@
     "require-reload": "^0.2.2",
     "socket.io": "^1.4.5",
     "socket.io-client": "^1.4.5",
-    "sync-request": "^3.0.0",
-    "jade": "*"
+    "sync-request": "^3.0.0"
   },
   "description": "PicartoChatListener",
   "main": "app.js",
@@ -28,7 +27,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/joelaw9/PicartoChatBot.git"
+    "url": "git+https://github.com/Wolvan/PicartoChatBot.git"
   },
   "keywords": [
     "picarto",
@@ -38,7 +37,7 @@
   ],
   "license": "GPL-3.0",
   "bugs": {
-    "url": "https://github.com/joelaw9/PicartoChatBot/issues"
+    "url": "https://github.com/Wolvan/PicartoChatBot/issues"
   },
-  "homepage": "https://github.com/joelaw9/PicartoChatBot#readme"
+  "homepage": "https://github.com/Wolvan/PicartoChatBot#readme"
 }
