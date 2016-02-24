@@ -273,14 +273,10 @@ commander.version("1.2.0").usage("[options]")
 .option("-c, --channel <Picarto Channel>", "Set channel to connect to.")
 .option("-n, --botname <Bot name>", "Set the bot's name.")
 .option("-t, --token <Token>", "Use an already existing token to login")
-.option("-p, --port <Port>","Set a custom port")
-.option("-u, --url <URL>","Set a custom URL")
 .parse(process.argv);
 if (commander.token) var token = commander.token;
 if (commander.botname) var name = commander.botname;
 if (commander.channel) var channel = commander.channel;
-if (commander.port) api.port = commander.port;
-if (commander.url) api.url = commander.url;
 
 if(config.http){
     if(config.http.enabled){
