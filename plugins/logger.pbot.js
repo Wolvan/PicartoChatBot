@@ -36,14 +36,14 @@ function servePage(req,res) {
     } else if(path[1].toLowerCase() == "logger"){
         var allRecords = storage.values() || [] ;
         var channels = {};
-        for(record of allRecords){
-            if(channels.hasOwnProperty(record.channel)){
-                channels[record.channel].records++;
-                if(new Date(record.date) > new Date(channels[record.channel].date)){
-                    channels[record.channel].date = record.date();
+        for(record in allRecords){
+            if(channels.hasOwnProperty(allRecords[record].channel)){
+                channels[allRecords[record].channel].records++;
+                if(new Date(allRecords[record].date) > new Date(channels[allRecords[record].channel].date)){
+                    channels[allRecords[record].channel].date = allRecords[record].date();
                 }
             } else {
-                channels[record.channel] = {channel:record.channel,date:record.date,records:1};
+                channels[allRecords[record].channel] = {channel:allRecords[record].channel,date:allRecords[record].date,records:1};
             }
         }
         api.jade.renderFile(process.cwd() + '/views/channels.jade',{channels:channels}, function(err,html){

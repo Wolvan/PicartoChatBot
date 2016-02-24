@@ -18,6 +18,7 @@ var store = storage.create({ dir: process.cwd() + "/storage/main_app" });
 store.initSync();
 
 api.Events = new EventEmitter;
+api.Events.setMaxListeners(0);
 api.readOnly = false;
 api.jade = jade;
 api.url = "http://localhost";
@@ -89,13 +90,20 @@ function initServer(){
         res.end();
     });
     
-    server.listen(api.port, function(error) {
-        if (error) {
-        console.error("Unable to listen on port", api.port, error);
-        return;
-        } else {
-            console.log("Enter " + api.url + ":" + api.port + " in a browser to access web functions.");
+    server.listen(api.port, function (error) {
+        function waitToPost() {
+            if (!SET_PICARTO_LOGIN) {
+                if (error) {
+                    console.error("Unable to listen on port", api.port, error);
+                    return;
+                } else {
+                    console.log("Enter " + api.url + ":" + api.port + " in a browser to access web functions.");
+                }
+            } else {
+                setTimeout(waitToPost, 1000);
+            }
         }
+        waitToPost();
     });
 }
 
@@ -233,7 +241,7 @@ plugin_loader.listPlugins().forEach(function (item) {
 });
 
 // Load commandline args as env variables
-commander.version("1.1.0").usage("[options]")
+commander.version("1.2.0").usage("[options]")
 .option("-c, --channel <Picarto Channel>", "Set channel to connect to.")
 .option("-n, --botname <Bot name>", "Set the bot's name.")
 .option("-t, --token <Token>", "Use an already existing token to login")
@@ -262,8 +270,7 @@ if (process.env.PICARTO_TOKEN) {
 } else if (process.env.PICARTO_CHANNEL) {
     console.log("Attempting ReadOnly connection, please be patient...");
     picarto.getROToken(process.env.PICARTO_CHANNEL).then(function (res) { api.readOnly = res.readOnly; initSocket(res.token); }).catch(function (reason) { console.log("Token acquisition failed: " + reason); process.exit(1); });
-}
-else {
+} else {
     SET_PICARTO_LOGIN = 1;
     console.log("No login information given.");
     process.stdout.write("Channel: ");

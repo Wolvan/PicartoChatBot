@@ -14,6 +14,15 @@ This is an extendable bot for Picarto.TV chats. By itself it does nothing, that'
 	* `greetings.pbot.js` Make the bot greet people or say goodbye
 	* `message_output.pbot.js` Print messages from chat to your output
 	* `request_q.pbot.js` A queue plugin for requests or commissions
+	* `logger.pbot.js` A plugin that logs the chat and makes the logs available through the integrated WebServer
+
+## Install the bot
+### from npm (globally)
+1. Install NodeJS with npm
+2. Use `npm install -g picarto-chat-bot` from a command prompt or terminal
+3. Install Plugins
+4. Run it with `picarto-bot [-n|-c|-t|-p|-u|--help]`
+5. Use the `help` command for a list of commands when the bot is running
 
 ### from GitHub (locally)
 1. Clone this repository or download the source as .zip file
