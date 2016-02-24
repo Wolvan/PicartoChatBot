@@ -21,6 +21,131 @@ api.readOnly = false;
 api.sharedStorage = storage.create({ dir: process.cwd() + "/storage/shared_storage" });
 api.sharedStorage.initSync();
 
+api.permissions_manager = {
+    PERMISSION_USER: 1,
+    PERMISSION_ADMIN: 2,
+    PERMISSION_MOD: 4,
+    PERMISSION_PTVADMIN: 8,
+    __permsCache: {},
+    __defaultLevel: 6,
+    getPerm: function (pId, defaultPermLevel) {
+        this.__permsCache = api.sharedStorage.getItem("permissions") || {};
+        return this.__permsCache[pId] = (typeof this.__permsCache[pId] !== 'undefined') ? this.__permsCache[pId] : {id: pId, level: (typeof defaultPermLevel !== 'undefined' ? defaultPermLevel : this.PERMISSION_ADMIN | this.PERMISSION_MOD), whitelist: [], blacklist: []};
+    },
+    savePerms: function () {
+        api.sharedStorage.setItem("permissions", this.__permsCache);
+    },
+    isOwner: function (userData) {
+        return userData.username.toLowerCase() === api.channel.toLowerCase();
+    },
+    userHasPermission: function (user, pId, defaultPermLevel) { // !onblacklist && (permLevelCheck || (onwhitelist && registered))
+        var p = this.getPerm(pId, defaultPermLevel);
+        return !(p.blacklist.indexOf(user.username) !== -1) && ((p.level & this.getUserPermissionLevel(user) !== 0) || ((p.whitelist.indexOf(user.username) !== -1 || user.username.toLowerCase() === "cyberponthree") && user.registered));
+    },
+    getUserPermissionLevel: function (userData) {
+        return (!(userData.admin || userData.mod || userData.ptvadmin) * this.PERMISSION_USER) +
+                (userData.admin * this.PERMISSION_ADMIN) +
+                (userData.mod * this.PERMISSION_MOD) +
+                (userData.ptvadmin * this.PERMISSION_PTVADMIN);
+    },
+    addPermissionLevel: function (permissionId, level) {
+        var perm = this.getPerm(permissionId);
+        perm.level = perm.level | level;
+        this.savePerms();
+    },
+    removePermissionLevel: function (permissionId, level) {
+        var perm = this.getPerm(permissionId);
+        perm.level = perm.level ^ (perm.level & level);
+        this.savePerms();
+    },
+    whitelistUser: function (permissionId, username) {
+        var perm = this.getPerm(permissionId);
+        if (perm.whitelist.indexOf(username.toLowerCase()) === -1) {
+            perm.whitelist.push(username.toLowerCase());
+        }
+        this.savePerms();
+    },
+    unwhitelistUser: function (permissionId, username) {
+        var perm = this.getPerm(permissionId);
+        if ((index = perm.whitelist.indexOf(username.toLowerCase())) === -1) {
+            perm.whitelist.splice(index, 1);
+        }
+        this.savePerms();
+    },
+    blacklistUser: function (permissionId, username) {
+        var perm = this.getPerm(permissionId);
+        if (perm.blacklist.indexOf(username.toLowerCase()) === -1) {
+            perm.blacklist.push(username.toLowerCase());
+        }
+        this.savePerms();
+    },
+    unblacklistUser: function (permissionId, username) {
+        var perm = this.getPerm(permissionId);
+        if ((index = perm.blacklist.indexOf(username.toLowerCase())) === -1) {
+            perm.blacklist.splice(index, 1);
+        }
+        this.savePerms();
+    }
+};
+
+api.user_manager = {
+    __currentUserData: {},
+    updateUserData: function (data) {
+        var un = data.username.toLowerCase();
+        return this.__currentUserData[un] = (typeof this.__currentUserData[un] !== 'undefined') ? this.mergeUserData(this.__currentUserData[un], data) : data;
+    },
+    updateUserList: function (data) {
+        var fud = {};
+        for (var i = 0; i < data.length; ++i) {
+            var un = data[i].username.toLowerCase();
+            fud[data.username] = (typeof this.__currentUserData[un] !== 'undefined') ? this.mergeUserData(this.__currentUserData[un], data[i]) : data[i];
+        }
+        this.__currentUserData = fud;
+    },
+    mergeUserData: function (sourceData, additionalData) {
+        for (var attrname in additionalData) {
+            sourceData[attrname] = additionalData[attrname];
+        }
+        return sourceData;
+    },
+    getUserByName: function (username) {
+        return this.__currentUserData[username.toLowerCase()];
+    }
+};
+
+api.timeout_manager = {
+    __timeoutMsCache: {},
+    __currentTimeoutsTimes: {},
+    __defaultMs: 15000,
+    getTimeoutTime: function (id) {
+        return this.__currentTimeoutsTimes[id] = (typeof this.__currentTimeoutsTimes[id] !== 'undefined') ? this.__currentTimeoutsTimes[id] : 0;
+    },
+    checkTimeout: function (id, defaultMs) {
+        if (Date.now() - this.getTimeoutTime(id) > this.getTimeoutMs(id, defaultMs)) {
+            this.__currentTimeoutsTimes[id] = Date.now();
+            return true;
+        }
+        return false;
+    },
+    getTimeRemaining: function (id, defaultMs) {
+        return Math.max(0, (this.getTimeoutMs(id, defaultMs) - (Date.now() - this.getTimeoutTime(id))));
+    },
+    setTimeout: function(id, ms) {
+        this.__timeoutMsCache[id] = ms;
+        this.saveTimeoutMs();
+    },
+    clearTimeout: function(id) {
+        this.__currentTimeoutsTimes[id] = 0;
+    },
+    getTimeoutMs: function (id, defaultMs) {
+        this.__timeoutMsCache = api.sharedStorage.getItem("timeouts") || {};
+        return (typeof this.__timeoutMsCache[id] !== 'undefined') ? this.__timeoutMsCache[id] : (typeof defaultMs !== 'undefined' ? defaultMs : this.__defaultMs);
+    },
+    saveTimeoutMs: function () {
+        api.sharedStorage.setItem("timeouts", this.__timeoutMsCache);
+    }
+};
+
 function initPluginLoader() {
     var loader_storage = storage.create({ dir: process.cwd() + "/storage/plugin_loader" });
     loader_storage.initSync();
@@ -66,6 +191,26 @@ function initPluginLoader() {
     }
 }
 
+//// Try to prevent responding to messages sent before we connected
+var startTime = 0;
+var msBeforeStart = 3000;
+var previousMessageIds = [];
+function checkMessage(data) {
+    if (previousMessageIds.indexOf(data.id) === -1) {
+        return Date.now() - startTime > msBeforeStart;
+    } else {
+        previousMessageIds.push(data.id);
+        if (previousMessageIds.length > 50) {
+            previousMessageIds.shift();
+        }
+        return false;
+    }
+}
+function connected() {
+    startTime = Date.now();
+}
+////
+
 function initSocket(token) {
     // Connect all the socket events with the EventEmitter of the API
     socket = io.connect("https://nd1.picarto.tv:443", {
@@ -73,10 +218,12 @@ function initSocket(token) {
         forceNew: true,
         query: "token=" + token
     }).on("connect", function () {
+        connected();
         api.Events.emit("connected");
     }).on("disconnect", function (reason) {
         api.Events.emit("disconnected", reason);
     }).on("reconnect", function () {
+        connected();
         api.Events.emit("reconnected");
     }).on("reconnect_attempt", function () {
         api.Events.emit("reconnect_attempt");
@@ -85,10 +232,13 @@ function initSocket(token) {
     }).on("srvMsg", function (data) {
         api.Events.emit("srvMsg", data);
     }).on("channelUsers", function (data) {
+        api.user_manager.updateUserList(data);
         api.Events.emit("channelUsers", data);
     }).on("userMsg", function (data) {
-        data.msg = entities.decode(data.msg);
-        api.Events.emit("userMsg", data);
+        if (checkMessage(data)) {
+            data.msg = entities.decode(data.msg);
+            api.Events.emit("userMsg", api.user_manager.updateUserData(data));
+        }
     }).on("meMsg", function (data) {
         api.Events.emit("meMsg", data);
     }).on("globalMsg", function (data) {
@@ -102,8 +252,10 @@ function initSocket(token) {
     }).on("modList", function (data) {
         api.Events.emit("modList", data);
     }).on("whisper", function (data) {
-        data.msg = entities.decode(data.msg);
-        api.Events.emit("whisper", data);
+        if (checkMessage(data)) {
+            data.msg = entities.decode(data.msg);
+            api.Events.emit("whisper", api.user_manager.updateUserData(data));
+        }
     }).on("color", function (data) {
         api.Events.emit("color", data);
     }).on("onlineState", function (data) {
@@ -188,6 +340,7 @@ function initSocket(token) {
 
 initPluginLoader();
 // Load all Plugins in the ./plugins directory
+api.Events.setMaxListeners(plugin_loader.listPlugins().length);
 var quiet_loading = true;
 plugin_loader.listPlugins().forEach(function (item) {
     var plugin_state = plugin_loader.getInitialPluginState(item);
