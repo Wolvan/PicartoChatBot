@@ -3,8 +3,8 @@ var storage;
 
 function handleMsg(data) {
     var now = new Date();
-    var key = process.env.PICARTO_CHANNEL + "_" + now.getDate() + "_" + (now.getMonth()+1) + "_" + now.getFullYear();
-    var record = storage.getItem(key) || {channel:process.env.PICARTO_CHANNEL,date:now.getDate() + "/" + (now.getMonth()+1) + "/" + now.getFullYear(),messages:[]};
+    var key = data.channel + "_" + now.getDate() + "_" + (now.getMonth()+1) + "_" + now.getFullYear();
+    var record = storage.getItem(key) || {channel:data.channel,date:now.getDate() + "/" + (now.getMonth()+1) + "/" + now.getFullYear(),messages:[]};
     record.messages.push({username:data.username,color:data.color,msg:data.msg,timestamp:now.getTime()});
     storage.setItem(key,record);
 }

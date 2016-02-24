@@ -6,7 +6,7 @@ function handleChatMsg(data) {
         dieString = dieString.replace("[", "").replace("]", "");
         
         if (dieString === "?") {
-            api.Messages.send("Roll dice! Format: [xdy+/-xdy+/-xdy+/-xdy+/-...+/-z]. Max x: 200, Max y: 200");
+            api.Messages.send("Roll dice! Format: [xdy+/-xdy+/-xdy+/-xdy+/-...+/-z]. Max x: 200, Max y: 200",data.channel);
             return;
         }
         
@@ -52,7 +52,7 @@ function handleChatMsg(data) {
         });
         
         if (dieTooHigh) {
-            api.Messages.send("One or more of the dice you tried to throw are too high! Max is 200d200.");
+            api.Messages.send("One or more of the dice you tried to throw are too high! Max is 200d200.",data.channel);
             return;
         }
         

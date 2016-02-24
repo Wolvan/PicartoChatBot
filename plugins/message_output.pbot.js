@@ -10,7 +10,7 @@ function whisper (data) {
 module.exports = {
     meta_inf: {
         name: "Message Output",
-        version: "1.0.1",
+        version: "1.0.0",
         description: "Read the chat from the bot console.",
         author: "Wolvan"
     },
