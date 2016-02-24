@@ -37,9 +37,9 @@ function addReq(msg,request){
     return;
 }
 
-function addRequestToQEvent(request, _username) {
+function addRequestToQEvent(request, _username, _channel) {
     addReq({username:_username || "admin"},request);
-    api.Messages.send("Added request '" + request + "'");
+    api.Messages.send("Added request '" + request + "'", _channel);
 }
 function handleMsg(data) {
     if (data.msg.toLowerCase().startsWith("!request")) {
@@ -52,7 +52,7 @@ function handleMsg(data) {
             } else {
                 var requests = getReq(data);
             }
-            api.Messages.send("There currently " + (requests.length !== 1 ? "are" : "is") + " " + (!requests.length ? "no" : requests.length) + " request" + (requests.length !== 1 ? "s" : "") + " in the queue" + (requests.length ? ":" : "."));
+            api.Messages.send("There currently " + (requests.length !== 1 ? "are" : "is") + " " + (!requests.length ? "no" : requests.length) + " request" + (requests.length !== 1 ? "s" : "") + " in the queue" + (requests.length ? ":" : "."),data.channel);
             for (var i = 0; i < requests.length; i++) {
                 setTimeout(function (index, request) {
                     if (index < 10) {
@@ -61,27 +61,27 @@ function handleMsg(data) {
                 }.bind(this, i, requests[i]), (i + 1) * 1000);
             }
         } else if (args[0] === "?" || args[0].toLowerCase() === "help") {
-            api.Messages.send("Add, delete or list requests! You can also raffle a random request!");
+            api.Messages.send("Add, delete or list requests! You can also raffle a random request!",data.channel);
         } else if (args[0].toLowerCase() === "raffle") {
             var requests = getReq(data);
             if (!requests.length) {
-                api.Messages.send("No requests to raffle");
+                api.Messages.send("No requests to raffle",data.channel);
                 return;
             }
-            api.Messages.send("Do this request: " + requests[Math.floor(Math.random() * requests.length)]);
+            api.Messages.send("Do this request: " + requests[Math.floor(Math.random() * requests.length)],data.channel);
         } else if (args[0].toLowerCase() === "delete" || args[0].toLowerCase() === "del" || args[0].toLowerCase() === "rm" || args[0].toLowerCase() === "remove") {
             args.splice(0, 1);
             var index = parseInt(args[0]) - 1;
             var removed = delReq(data, index);
-            removed ? api.Messages.send("Removed request '" + removed + "'") : api.Messages.send("Request with index " + (index + 1) + " not found.");
+            removed ? api.Messages.send("Removed request '" + removed + "'",data.channel) : api.Messages.send("Request with index " + (index + 1) + " not found.",data.channel);
         } else if (parseInt(args[0])) {
             var requests = getReq(data);
             var index = parseInt(args[0]) - 1;
-            requests[index] ? api.Messages.send("Request " + (index + 1) + ": " + requests[index]) : api.Messages.send("Request with index " + (index + 1) + " not found.");
+            requests[index] ? api.Messages.send("Request " + (index + 1) + ": " + requests[index],data.channel) : api.Messages.send("Request with index " + (index + 1) + " not found.",data.channel);
         } else {
             if (args[0].toLowerCase() === "add") args.splice(0, 1);
             addReq(data,args.join(" "));
-            api.Messages.send("Added request '" + args.join(" ") + "'");
+            api.Messages.send("Added request '" + args.join(" ") + "'",data.channel);
         }
     }
 }
