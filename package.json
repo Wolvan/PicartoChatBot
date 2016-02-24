@@ -20,7 +20,7 @@
   "description": "PicartoChatListener",
   "main": "app.js",
   "name": "picarto-chat-bot",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
