@@ -32,6 +32,6 @@ module.exports = {
         api.Events.on("http", servePage);
     },
     stop: function () {
-        api.Events.onremoveListener("http", servePage);
+        api.Events.removeListener("http", servePage);
     }
 }

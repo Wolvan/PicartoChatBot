@@ -124,7 +124,7 @@ module.exports = {
     },
     stop: function () {
         api.Events.removeListener("userMsg", handleMsg);
-        api.Events.onremoveListener("http", servePage);
+        api.Events.removeListener("http", servePage);
     },
     unload: function() {
         api.Events.removeListener("requestq_addRequestToQ", addRequestToQEvent);
