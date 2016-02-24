@@ -1,16 +1,16 @@
 ﻿var api;
 
 function userMsg (data) {
-    console.log(data.username + ": " + data.msg);
+    console.log(data.channel + "/" + data.username + ": " + data.msg);
 }
 function whisper (data) {
-    console.log(data.username + " whispered: " + data.msg);
+    console.log(data.channel + "/" + data.username + " whispered: " + data.msg);
 }
 
 module.exports = {
     meta_inf: {
         name: "Message Output",
-        version: "1.0.0",
+        version: "1.0.1",
         description: "Read the chat from the bot console.",
         author: "Wolvan"
     },
