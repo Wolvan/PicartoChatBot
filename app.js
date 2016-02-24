@@ -10,6 +10,7 @@ var storage = require("node-persist");
 var picarto = require("./modules/picarto.js");
 var http = require('http');
 var jade = require('jade');
+var config = require("./config.json") || {};
 
 var socket;
 var plugin_loader;
@@ -23,8 +24,6 @@ api.Events = new EventEmitter;
 api.Events.setMaxListeners(0);
 api.readOnly = {};
 api.jade = jade;
-api.url = "http://localhost";
-api.port = 10001;
 
 api.sharedStorage = storage.create({ dir: process.cwd() + "/storage/shared_storage" });
 api.sharedStorage.initSync();
@@ -74,7 +73,7 @@ function initPluginLoader() {
     }
 }
 
-function initServer(){
+function initServer(url){
     var server = http.createServer(function(req, res) {
         res.writeHead(200);
         api.Events.emit("http",req,res);
@@ -92,14 +91,14 @@ function initServer(){
         res.end();
     });
     
-    server.listen(api.port, function (error) {
+    server.listen(url.port, function (error) {
         function waitToPost() {
             if (!SET_PICARTO_LOGIN) {
                 if (error) {
-                    console.error("Unable to listen on port", api.port, error);
+                    console.error("Unable to listen on port", url.port, error);
                     return;
                 } else {
-                    console.log("Enter " + api.url + ":" + api.port + " in a browser to access web functions.");
+                    console.log("Enter " + url.url + ":" + url.port + " in a browser to access web functions.");
                 }
             } else {
                 setTimeout(waitToPost, 1000);
@@ -132,7 +131,7 @@ function initSocket(token,channel) {
     }).on("channelUsers", function (data) {
         api.Events.emit("channelUsers", data);
     }).on("userMsg", function (data) {
-        if(inputLog.indexOf(data.id) == -1 && true){
+        if(inputLog.indexOf(data.id) == -1){
             inputLog.push(data.id);
             if(inputLog.length > 50) inputLog.shift();
             data.msg = entities.decode(data.msg);
@@ -153,7 +152,7 @@ function initSocket(token,channel) {
     }).on("modList", function (data) {
         api.Events.emit("modList", data);
     }).on("whisper", function (data) {
-        if(inputLog.indexOf(data.id) == -1 && true){
+        if(inputLog.indexOf(data.id) == -1){
             inputLog.push(data.id);
             if(inputLog.length > 50) inputLog.shift();
             data.msg = entities.decode(data.msg);
@@ -203,11 +202,11 @@ function initSocket(token,channel) {
         send: function (message,channel) {
             if(typeof channel == 'undefined'){
                 channel = Object.keys(socket)[0];
-            } else if(typeof socket[channel.toLowerCase()] === 'undefined') {
+            } else if(typeof socket[channel.toLowerCase()] === 'undefined' || socket[channel.toLowerCase()].disconnected) {
                 console.log("Failed to send, channel is not connected");
                 return;
             } 
-            if (api[channel.toLowerCase()].readOnly) {
+            if (api.readOnly[channel.toLowerCase()]) {
                 console.log("Bot runs in ReadOnly Mode. Messages can not be sent");
                 return;
             }
@@ -223,13 +222,13 @@ function initSocket(token,channel) {
             });
         },
         whisper: function (to, message,channel) {
-            if(typeof channel == 'undefined' || typeof socket[channel.toLowerCase()] === 'undefined'){
+            if(typeof channel == 'undefined'){
                 channel = Object.keys(socket)[0];
-            } else if(typeof socket[channel.toLowerCase()] === 'undefined') {
+            } else if(typeof socket[channel.toLowerCase()] === 'undefined'  || socket[channel.toLowerCase()].disconnected) {
                 console.log("Failed to send, channel is not connected");
                 return;
             } 
-            if (api[channel.toLowerCase()].readOnly) {
+            if (api.readOnly[channel.toLowerCase()]) {
                 console.log("Bot runs in ReadOnly Mode. Messages can not be sent");
                 return;
             }
@@ -283,7 +282,13 @@ if (commander.channel) var channel = commander.channel;
 if (commander.port) api.port = commander.port;
 if (commander.url) api.url = commander.url;
 
-initServer();
+if(config.http){
+    if(config.http.enabled){
+        initServer(config.http);
+    } 
+} else {
+    initServer({url:"http://localhost",port:"10001"});
+}
 
 var SET_PICARTO_LOGIN = 0;
 if (token) {
@@ -293,16 +298,28 @@ if (token) {
     console.log("Attempting to connect, this might take a moment. Please be patient...");
     picarto.getToken(channel, name).then(function (res) {
         initSocket(res.token,channel);
-        api[channel.toLowerCase()].readOnly = res.readOnly;
+        api.readOnly[channel.toLowerCase()] = res.readOnly;
         if (res.readOnly) console.log("Chat disabled guest login! Establishing ReadOnly Connection.");
     }).catch(function (reason) { console.log("Token acquisition failed: " + reason);});
 } else if (channel) {
     console.log("Attempting ReadOnly connection, please be patient...");
-    picarto.getROToken(channel).then(function (res) { api[channel.toLowerCase()].readOnly = res.readOnly; initSocket(res.token,channel); }).catch(function (reason) { console.log("Token acquisition failed: " + reason); });
-} else {
+    picarto.getROToken(channel).then(function (res) { api.readOnly[channel.toLowerCase()] = res.readOnly; initSocket(res.token,channel); }).catch(function (reason) { console.log("Token acquisition failed: " + reason); });
+} else if(config.channels.length == 0) {
     SET_PICARTO_LOGIN = 1;
     console.log("No login information given.");
     process.stdout.write("Channel: ");
+}
+
+if(config.channels){
+    config.channels.forEach(function(channel){
+        if(channel.enabled){
+            picarto.getToken(channel.channel, channel.name).then(function (res) {
+                initSocket(res.token,channel.channel);
+                api.readOnly[channel.channel.toLowerCase()] = res.readOnly;
+                if (res.readOnly) console.log(channel + ": Chat disabled guest login! Establishing ReadOnly Connection.");
+            }).catch(function (reason) { console.log(channel.channel + ": Token acquisition failed: " + reason);});
+        }
+    });
 }
 
 function plugin_cmd(args) {
@@ -543,7 +560,7 @@ process.stdin.on('readable', function () {
             } else if (SET_PICARTO_LOGIN === 2) {
                 if (!chunk.toString().trim()) { 
                     console.log("Attempting ReadOnly connection, please be patient...");
-                    picarto.getROToken(process.env.PICARTO_CHANNEL).then(function (res) { initSocket(res.token,process.env.PICARTO_CHANNEL); api[process.env.PICARTO_CHANNEL.toLowerCase()].readOnly = res.readOnly; }).catch(function (reason) { console.log("Token acquisition failed: " + reason); });
+                    picarto.getROToken(process.env.PICARTO_CHANNEL).then(function (res) { initSocket(res.token,process.env.PICARTO_CHANNEL); api.readOnly[process.env.PICARTO_CHANNEL.toLowerCase()] = res.readOnly; }).catch(function (reason) { console.log("Token acquisition failed: " + reason); });
                     SET_PICARTO_LOGIN = 0;
                     return;
                 }
@@ -552,7 +569,7 @@ process.stdin.on('readable', function () {
                 console.log("Attempting to connect, this might take a moment. Please be patient...");
                 picarto.getToken(process.env.PICARTO_CHANNEL, process.env.PICARTO_NAME).then(function (res) {
                     initSocket(res.token,process.env.PICARTO_CHANNEL);
-                    api[process.env.PICARTO_CHANNEL.toLowerCase()].readOnly = res.readOnly;
+                    api.readOnly[process.env.PICARTO_CHANNEL.toLowerCase()] = res.readOnly;
                     if (res.readOnly) console.log("Chat disabled guest login! Establishing ReadOnly Connection.");
                 }).catch(function (reason) { console.log("Token acquisition failed: " + reason); });
             }
@@ -591,7 +608,7 @@ process.stdin.on('readable', function () {
                 } else if(args[0] && args[1]){
                     picarto.getToken(args[0], args[1]).then(function (res) {
                         initSocket(res.token,args[0]);
-                        api[args[0].toLowerCase()].readOnly = res.readOnly;
+                        api.readOnly[args[0].toLowerCase()] = res.readOnly;
                         if (res.readOnly) console.log("Chat disabled guest login! Establishing ReadOnly Connection.");
                     }).catch(function (reason) { console.log("Token acquisition failed: " + reason);});
                 } else if(args[0]){
