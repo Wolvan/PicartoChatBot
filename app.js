@@ -16,6 +16,7 @@ var plugin_loader;
 var api = {};
 var socket = {};
 var store = storage.create({ dir: process.cwd() + "/storage/main_app" });
+var inputLog =[];
 store.initSync();
 
 api.Events = new EventEmitter;
@@ -131,10 +132,14 @@ function initSocket(token,channel) {
     }).on("channelUsers", function (data) {
         api.Events.emit("channelUsers", data);
     }).on("userMsg", function (data) {
-        data.msg = entities.decode(data.msg);
-        data.channel = channel;
-        data.whisper = false;
-        api.Events.emit("userMsg", data);
+        if(inputLog.indexOf(data.id) == -1 && true){
+            inputLog.push(data.id);
+            if(inputLog.length > 50) inputLog.shift();
+            data.msg = entities.decode(data.msg);
+            data.channel = channel;
+            data.whisper = false;
+            api.Events.emit("userMsg", data);
+        }
     }).on("meMsg", function (data) {
         api.Events.emit("meMsg", data);
     }).on("globalMsg", function (data) {
@@ -148,10 +153,14 @@ function initSocket(token,channel) {
     }).on("modList", function (data) {
         api.Events.emit("modList", data);
     }).on("whisper", function (data) {
-        data.msg = entities.decode(data.msg);
-        data.channel = channel;
-        data.whisper = true;
-        api.Events.emit("whisper", data);
+        if(inputLog.indexOf(data.id) == -1 && true){
+            inputLog.push(data.id);
+            if(inputLog.length > 50) inputLog.shift();
+            data.msg = entities.decode(data.msg);
+            data.channel = channel;
+            data.whisper = true;
+            api.Events.emit("whisper", data);
+        }
     }).on("color", function (data) {
         api.Events.emit("color", data);
     }).on("onlineState", function (data) {
