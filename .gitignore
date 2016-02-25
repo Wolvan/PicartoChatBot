@@ -228,6 +228,8 @@ plugins/*
 !plugins/request_q.pbot.js
 !plugins/roll_dice.pbot.js
 !plugins/logger.pbot.js
+!plugins/perm_man.pbot.js
+!plugins/timeout_man.pbot.js
 
 #config
 config.json
