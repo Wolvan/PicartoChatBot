@@ -7,34 +7,6 @@ function newWhisper(data) {
     handleMessage(data, true);
 }
 
-function parsePermLevel(str) {
-    lvl = 0;
-    lvls = str.split(',').filter(function (v, i, s) {
-        return s.indexOf(v) === i;
-    });
-    for (var i = 0; i < lvls.length; ++i) {
-        switch (lvls[i]) {
-            case "user":
-            case "users":
-                lvl += api.permissions_manager.PERMISSION_USER;
-                break;
-            case "mod":
-            case "mods":
-                lvl += api.permissions_manager.PERMISSION_MOD;
-                break;
-            case "admin":
-            case "admins":
-                lvl += api.permissions_manager.PERMISSION_ADMIN;
-                break;
-            case "padmin":
-            case "padmins":
-                lvl += api.permissions_manager.PERMISSION_PTVADMIN;
-                break;
-        }
-    }
-    return lvl;
-}
-
 function handleMessage(data, whisper) {
     if (data.msg.toLowerCase().startsWith("!")) {
         var pars = data.msg.split(' ');
