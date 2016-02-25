@@ -93,7 +93,7 @@ function servePage(req,res) {
         if(path.length > 3 && path[3].toLowerCase() == 'json'){
             res.write(JSON.stringify(requests));
         }else{
-            api.jade.renderFile(process.cwd() + '/views/request.jade',{requests:requests}, function(err,html){
+            api.jade.renderFile(process.cwd() + '/views/request.jade',{requests:requests,url:"/request/"+path[2]+"/json"}, function(err,html){
                 res.write(html);
             });
         }
