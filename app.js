@@ -17,7 +17,7 @@ var plugin_loader;
 var api = {};
 var socket = {};
 var store = storage.create({ dir: process.cwd() + "/storage/main_app" });
-var inputLog = {};
+var inputLog = [];
 store.initSync();
 
 api.version = "1.2.1";
@@ -116,7 +116,6 @@ function initServer(url){
 
 function initSocket(token,channel) {
     // Connect all the socket events with the EventEmitter of the API
-    inputLog[channel] = [];
     socket[channel.toLowerCase()] = io.connect("https://nd1.picarto.tv:443", {
         secure: true,
         forceNew: true,
@@ -138,9 +137,9 @@ function initSocket(token,channel) {
     }).on("channelUsers", function (data) {
         api.Events.emit("channelUsers", data);
     }).on("userMsg", function (data) {
-        if(inputLog[channel].indexOf(data.id) == -1){
-            inputLog[channel].push(data.id);
-            if(inputLog[channel].length > 50) inputLog[channel].shift();
+        if(inputLog.indexOf(data.id) == -1){
+            inputLog.push(data.id);
+            if(inputLog.length > 50) inputLog.shift();
             data.msg = entities.decode(data.msg);
             data.channel = channel;
             data.whisper = false;
@@ -159,9 +158,9 @@ function initSocket(token,channel) {
     }).on("modList", function (data) {
         api.Events.emit("modList", data);
     }).on("whisper", function (data) {
-        if(inputLog[channel].indexOf(data.id) == -1){
-            inputLog[channel].push(data.id);
-            if(inputLog[channel].length > 50) inputLog[channel].shift();
+        if(inputLog.indexOf(data.id) == -1){
+            inputLog.push(data.id);
+            if(inputLog.length > 50) inputLog.shift();
             data.msg = entities.decode(data.msg);
             data.channel = channel;
             data.whisper = true;
