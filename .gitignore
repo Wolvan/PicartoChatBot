@@ -214,6 +214,22 @@ ModelManifest.xml
 # App Storage
 storage/
 
+#vs code 
+vscode/
+
 # Solution Files
 PicartoChatListener.njsproj
 PicartoChatListener.sln
+
+# Plugins
+plugins/*
+!plugins/greetings.pbot.js
+!plugins/message_output.pbot.js
+!plugins/request_q.pbot.js
+!plugins/roll_dice.pbot.js
+!plugins/logger.pbot.js
+!plugins/perm_man.pbot.js
+!plugins/timeout_man.pbot.js
+
+#config
+config.json

@@ -1,0 +1,25 @@
+doctype html
+html
+  head
+    title Channels
+  body
+    #container
+        table
+            -function prettyDate(dateString){
+                -var date =  new Date(dateString);
+                -var d = date.getDate();
+                -var monthNames = [ "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" ];
+                -var m = monthNames[date.getMonth()];
+                -var y = date.getFullYear();
+                -var h = date.getHours();
+                -var min = date.getMinutes();
+                -var s = date.getSeconds();
+                -return d+' '+m+' '+y+' '+h+':'+min+':'+s;
+            -} 
+            tbody
+                each channel in channels
+                    tr 
+                        td 
+                            a(href="/logger/"+channel.channel) #{channel.channel}
+                        td 
+                            i #{channel.records}

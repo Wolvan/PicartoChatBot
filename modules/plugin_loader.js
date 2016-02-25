@@ -83,7 +83,8 @@ plugin_loader.prototype.getPluginInfo = function (file_id) {
         Version: plugin.meta_inf.version || "0.0.0",
         Description: plugin.meta_inf.description || "No Description available",
         Author: plugin.meta_inf.author || "",
-        Dependencies: plugin.meta_inf.dependencies || {}
+        Dependencies: plugin.meta_inf.dependencies || {},
+        StorageOptions: plugin.meta_inf.storage_options || {}
     }
 }
 
@@ -134,12 +135,15 @@ plugin_loader.prototype.loadPlugin = function (file_id, quiet) {
         var plugin = this.getPlugin(file_id);
         var pluginInfo = this.getPluginInfo(file_id);
         injectDependencies(pluginInfo.Dependencies);
-        var plugin_store = node_persist.create({ dir: process.cwd() + "/storage/plugins/" + file_id });
+        var storage_options = pluginInfo.StorageOptions;
+        storage_options.dir = process.cwd() + "/storage/plugins/" + file_id;
+        var plugin_store = node_persist.create(storage_options);
         plugin_store.initSync();
         if (plugin.load) { plugin.load(this.api, plugin_store); }
         if (!quiet) console.log("[PluginLoader]Loaded plugin '" + pluginInfo.Name + " v" + pluginInfo.Version + "' from '" + file_id + "'");
         this.loadedPlugins[file_id] = plugin;
         this.storage.setItem("state_" + file_id, "loaded");
+        this.api.Events.emit("pm_pluginLoaded", file_id);
         return true;
     } catch (e) {
         if (!quiet) console.log("[PluginLoader]Failed to load plugin from file '" + file_id + "'\n" + e.stack);
@@ -166,6 +170,7 @@ plugin_loader.prototype.unloadPlugin = function (file_id, quiet) {
         delete this.loadedPlugins[file_id];
         if (!quiet) console.log("[PluginLoader]Unloaded plugin '" + pluginInfo.Name + " v" + pluginInfo.Version + "' from '" + file_id + "'");
         this.storage.setItem("state_" + file_id, "unloaded");
+        this.api.Events.emit("pm_pluginUnloaded", file_id);
         return true;
     } catch (e) {
         if (!quiet) console.log("[PluginLoader]Failed to unload plugin from file '" + file_id + "'\n" + e.stack);
@@ -192,6 +197,7 @@ plugin_loader.prototype.startPlugin = function (file_id, quiet) {
         this.startedPlugins[file_id] = true;
         if (!quiet) console.log("[PluginLoader]Started plugin '" + pluginInfo.Name + " v" + pluginInfo.Version + "' from '" + file_id + "'");
         this.storage.setItem("state_" + file_id, "running");
+        this.api.Events.emit("pm_pluginStarted", file_id);
         return true;
     } catch (e) {
         if (!quiet) console.log("[PluginLoader]Failed to start plugin from file '" + file_id + "'\n" + e.stack);
@@ -218,6 +224,7 @@ plugin_loader.prototype.stopPlugin = function (file_id, quiet) {
         this.startedPlugins[file_id] = false;
         if (!quiet) console.log("[PluginLoader]Stopped plugin '" + pluginInfo.Name + " v" + pluginInfo.Version + "' from '" + file_id + "'");
         this.storage.setItem("state_" + file_id, "loaded");
+        this.api.Events.emit("pm_pluginStopped", file_id);
         return true;
     } catch (e) {
         if (!quiet) console.log("[PluginLoader]Failed to stop plugin from file '" + file_id + "'\n" + e.stack);
