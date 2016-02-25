@@ -17,6 +17,7 @@ var api = {};
 var store = storage.create({ dir: process.cwd() + "/storage/main_app" });
 store.initSync();
 
+api.version = "1.2.1";
 api.Events = new EventEmitter;
 api.Events.setMaxListeners(0);
 api.readOnly = false;
@@ -52,7 +53,12 @@ function initPluginLoader() {
             return plugin_loader.listPlugins();
         },
         getPlugin: function (fileID) {
-            return plugin_loader.getPlugin(fileID);
+            var plugin = Object.create(plugin_loader.getPlugin(fileID));
+            plugin.start = function () { console.log("Plugins are not allowed to call another plugin's start function!"); }
+            plugin.stop = function () { console.log("Plugins are not allowed to call another plugin's stop function!"); }
+            plugin.load = function () { console.log("Plugins are not allowed to call another plugin's load function!"); }
+            plugin.unload = function () { console.log("Plugins are not allowed to call another plugin's unload function!"); }
+            return plugin;
         },
         getPluginInfo: function (fileID) {
             return plugin_loader.getPluginInfo(fileID);
@@ -241,7 +247,7 @@ plugin_loader.listPlugins().forEach(function (item) {
 });
 
 // Load commandline args as env variables
-commander.version("1.2.1").usage("[options]")
+commander.version(api.version).usage("[options]")
 .option("-c, --channel <Picarto Channel>", "Set channel to connect to.")
 .option("-n, --botname <Bot name>", "Set the bot's name.")
 .option("-t, --token <Token>", "Use an already existing token to login")
