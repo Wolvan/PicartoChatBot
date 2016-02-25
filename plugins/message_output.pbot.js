@@ -1,10 +1,10 @@
 ﻿var api;
 
 function userMsg (data) {
-    console.log(data.username + ": " + data.msg);
+    console.log(data.channel + "/" + data.username + ": " + data.msg);
 }
 function whisper (data) {
-    console.log(data.username + " whispered: " + data.msg);
+    console.log(data.channel + "/" + data.username + " whispered: " + data.msg);
 }
 
 module.exports = {
