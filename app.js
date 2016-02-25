@@ -269,22 +269,36 @@ plugin_loader.listPlugins().forEach(function (item) {
     }
 });
 
+var token;
+var name;
+var channel;
+config.http = config.http || {};
+if (process.env.PICARTO_TOKEN) token = process.env.PICARTO_TOKEN;
+if (process.env.PICARTO_CHANNEL) channel = process.env.PICARTO_CHANNEL;
+if (process.env.PICARTO_NAME) name = process.env.PICARTO_NAME;
+if (process.env.PICARTO_PORT) config.http.port = process.env.PICARTO_PORT;
+if (process.env.PICARTO_URL) config.http.url = process.env.PICARTO_URL;
+
 // Load commandline args as env variables
 commander.version("1.2.0").usage("[options]")
 .option("-c, --channel <Picarto Channel>", "Set channel to connect to.")
 .option("-n, --botname <Bot name>", "Set the bot's name.")
 .option("-t, --token <Token>", "Use an already existing token to login")
+.option("-p, --port <Port>","Set a custom port")
+.option("-u, --url <URL>","Set a custom URL")
 .parse(process.argv);
-if (commander.token) var token = commander.token;
-if (commander.botname) var name = commander.botname;
-if (commander.channel) var channel = commander.channel;
+if (commander.token) token = commander.token;
+if (commander.botname) name = commander.botname;
+if (commander.channel) channel = commander.channel;
+if (commander.port) config.http.port = commander.port;
+if (commander.url) config.http.url = commander.url;
 
 if(config.http){
     if(config.http.enabled){
         initServer(config.http);
     } 
 } else {
-    initServer({url:"http://localhost",port:"10001"});
+    initServer({url:"http://localhost",port:10001});
 }
 
 var SET_PICARTO_LOGIN = 0;
@@ -301,13 +315,13 @@ if (token) {
 } else if (channel) {
     console.log("Attempting ReadOnly connection, please be patient...");
     picarto.getROToken(channel).then(function (res) { api.readOnly[channel.toLowerCase()] = res.readOnly; initSocket(res.token,channel); }).catch(function (reason) { console.log("Token acquisition failed: " + reason); });
-} else if(config.channels.length == 0) {
+} else if(config.channels.length === 0 || (config.channels.length === 1 && config.channels[0].channel === "ExampleChannel")) {
     SET_PICARTO_LOGIN = 1;
     console.log("No login information given.");
     process.stdout.write("Channel: ");
 }
 
-if(config.channels){
+if(config.channels && config.channels.length && !(config.channels.length === 1 && config.channels[0].channel === "ExampleChannel")){
     config.channels.forEach(function(channel){
         if(channel.enabled){
             picarto.getToken(channel.channel, channel.name).then(function (res) {
@@ -613,6 +627,7 @@ process.stdin.on('readable', function () {
                     process.env.PICARTO_CHANNEL = args[0];
                     SET_PICARTO_LOGIN = 2;
                 } else {
+                    process.stdout.write("Channel: ");
                     SET_PICARTO_LOGIN = 1;
                 }
                 break;
