@@ -1,14 +1,14 @@
 {
-    "http":{
-        "url":"http://localhost",
-        "port":"10001",
-        "enabled":"true"
-    },
-    "channels":[
-        {
-            "channel":"ExampleChannel",
-            "name":"PicartoBot",
-            "enabled":"false"
-        }
-    ]
+  "http": {
+    "enabled": true,
+    "port": 10001,
+    "url": "http://localhost"
+  },
+  "channels": [
+    {
+      "channel": "ExampleChannel",
+      "enabled": false,
+      "name": "PicartoBot"
+    }
+  ]
 }
