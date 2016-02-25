@@ -15,9 +15,7 @@ html
             var xhttp = new XMLHttpRequest();
             xhttp.open("GET",url,true);
             xhttp.onreadystatechange = function() {
-                console.log(xhttp.status);
                 if (xhttp.readyState == 4 && xhttp.status == 200) {
-                    console.log("got it");
                     var container = document.getElementById("container");
                     var requests = JSON.parse(xhttp.responseText);
                     container.innerHTML = "";
