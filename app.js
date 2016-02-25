@@ -40,7 +40,7 @@ api.permissions_manager = {
     },
     userHasPermission: function (user, pId, defaultPermLevel) { // !onblacklist && (permLevelCheck || (onwhitelist && registered))
         var p = this.getPerm(pId, defaultPermLevel);
-        return !(p.blacklist.indexOf(user.username) !== -1) && ((p.level & this.getUserPermissionLevel(user) !== 0) || ((p.whitelist.indexOf(user.username) !== -1 || user.username.toLowerCase() === "cyberponthree") && user.registered));
+        return !(p.blacklist.indexOf(user.username) !== -1) && ((p.level & this.getUserPermissionLevel(user) !== 0) || ((p.whitelist.indexOf(user.username) !== -1) && user.registered));
     },
     getUserPermissionLevel: function (userData) {
         return (!(userData.admin || userData.mod || userData.ptvadmin) * this.PERMISSION_USER) +
