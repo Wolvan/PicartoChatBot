@@ -16,24 +16,24 @@ function handleMessage(data, whisper) {
             if (api.permissions_manager.userHasPermission(data, "cmd.settimeout") || api.permissions_manager.isOwner(data)) {
                 if (pars.length === 3 && isInt(pars[2])) {
                     api.timeout_manager.setTimeout(pars[1], parseInt(pars[2]));
-                    sendMessage("Set timeout " + pars[1] + " to " + pars[2], data.username);
+                    sendMessage("Set timeout " + pars[1] + " to " + pars[2], data.username, data.channel);
                 } else {
-                    sendMessage("Usage: !settimeout <timeoutId> <timeoutMs>", data.username);
+                    sendMessage("Usage: !settimeout <timeoutId> <timeoutMs>", data.username, data.channel);
                 }
             } else {
-                sendMessage("Sorry, you don't have permission to use this command.", data.username);
+                sendMessage("Sorry, you don't have permission to use this command.", data.username, data.channel);
             }
         }
         if (cmd === '!resettimeout') {
             if (api.permissions_manager.userHasPermission(data, "cmd.resettimeout") || api.permissions_manager.isOwner(data)) {
                 if (pars.length === 2) {
                     api.timeout_manager.clearTimeout(pars[1]);
-                    sendMessage("Cleared timeout " + pars[1], data.username);
+                    sendMessage("Cleared timeout " + pars[1], data.username, data.channel);
                 } else {
-                    sendMessage("Usage: !settimeout <timeoutId>", data.username);
+                    sendMessage("Usage: !settimeout <timeoutId>", data.username, data.channel);
                 }
             } else {
-                sendMessage("Sorry, you don't have permission to use this command.", data.username);
+                sendMessage("Sorry, you don't have permission to use this command.", data.username, data.channel);
             }
         }
     }
@@ -45,11 +45,11 @@ function isInt(value) {
     })(parseFloat(value));
 }
 
-function sendMessage(txt, whisperUser) {
+function sendMessage(txt, whisperUser, channel) {
     if (typeof whisperUser !== 'undefined') {
-        api.Messages.whisper(whisperUser, txt);
+        api.Messages.whisper(whisperUser, txt, channel);
     } else {
-        api.Messages.send(txt);
+        api.Messages.send(txt, channel);
     }
 }
 

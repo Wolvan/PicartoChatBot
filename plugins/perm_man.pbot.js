@@ -44,60 +44,56 @@ function handleMessage(data, whisper) {
                 if (pars.length === 4) {
                     switch (pars[2]) {
                         case 'add':
-                            console.log(api.permissions_manager.__permsLocalStore);
-                            api.permissions_manager.addPermissionLevel(pars[1], parsePermLevel(pars[3]));
-                            console.log(api.permissions_manager.__permsLocalStore);
-                            console.log(pars[1]);
-                            console.log(parsePermLevel(pars[3]));
-                            sendMessage("Added " + pars[3] + " to " + pars[1], whisper ? data.username : undefined);
+                            api.permissions_manager.addPermissionLevel(data.channel, pars[1], parsePermLevel(pars[3]));
+                            sendMessage("Added " + pars[3] + " to " + pars[1], whisper ? data.username : undefined, data.channel);
                             break;
                         case 'del':
                         case 'rem':
                         case 'delete':
                         case 'remove':
-                            api.permissions_manager.removePermissionLevel(pars[1], parsePermLevel(pars[3]));
-                            sendMessage("Removed " + pars[3] + " from " + pars[1], whisper ? data.username : undefined);
+                            api.permissions_manager.removePermissionLevel(data.channel, pars[1], parsePermLevel(pars[3]));
+                            sendMessage("Removed " + pars[3] + " from " + pars[1], whisper ? data.username : undefined, data.channel);
                             break;
                         case 'whitelist':
                             pars[3].split(',').forEach(function (un) {
-                                api.permissions_manager.whitelistUser(pars[1], un);
+                                api.permissions_manager.whitelistUser(data.channel, pars[1], un);
                             });
-                            sendMessage("Whitelisted " + pars[3] + " for " + pars[1], whisper ? data.username : undefined);
+                            sendMessage("Whitelisted " + pars[3] + " for " + pars[1], whisper ? data.username : undefined, data.channel);
                             break;
                         case 'unwhitelist':
                             pars[3].split(',').forEach(function (un) {
-                                api.permissions_manager.unwhitelistUser(pars[1], un);
+                                api.permissions_manager.unwhitelistUser(data.channel, pars[1], un);
                             });
-                            sendMessage("Unwhitelisted " + pars[3] + " for " + pars[1], whisper ? data.username : undefined);
+                            sendMessage("Unwhitelisted " + pars[3] + " for " + pars[1], whisper ? data.username : undefined, data.channel);
                             break;
                         case 'blacklist':
                             pars[3].split(',').forEach(function (un) {
-                                api.permissions_manager.blacklistUser(pars[1], un);
+                                api.permissions_manager.blacklistUser(data.channel, pars[1], un);
                             });
-                            sendMessage("Blacklisted " + pars[3] + " for " + pars[1], whisper ? data.username : undefined);
+                            sendMessage("Blacklisted " + pars[3] + " for " + pars[1], whisper ? data.username : undefined, data.channel);
                             break;
                         case 'unblacklist':
                             pars[3].split(',').forEach(function (un) {
-                                api.permissions_manager.unblacklistUser(pars[1], un);
+                                api.permissions_manager.unblacklistUser(data.channel, pars[1], un);
                             });
-                            sendMessage("Unblacklisted " + pars[3] + " for " + pars[1], whisper ? data.username : undefined);
+                            sendMessage("Unblacklisted " + pars[3] + " for " + pars[1], whisper ? data.username : undefined, data.channel);
                             break;
                     }
                 } else {
-                    sendMessage("Usage: !perm <permId> <add|del> <permLevel>  |  !perm <permId> <(un)whitelist|(un)blacklist> <username>  ", data.username);
+                    sendMessage("Usage: !perm <permId> <add|del> <permLevel>  |  !perm <permId> <(un)whitelist|(un)blacklist> <username>  ", data.username, data.channel);
                 }
             } else {
-                sendMessage("Sorry, you don't have permission to use this command.", data.username);
+                sendMessage("Sorry, you don't have permission to use this command.", data.username, data.channel);
             }
         }
     }
 }
 
-function sendMessage(txt, whisperUser) {
+function sendMessage(txt, whisperUser, channel) {
     if (typeof whisperUser !== 'undefined') {
-        api.Messages.whisper(whisperUser, txt);
+        api.Messages.whisper(whisperUser, txt, channel);
     } else {
-        api.Messages.send(txt);
+        api.Messages.send(txt, channel);
     }
 }
 

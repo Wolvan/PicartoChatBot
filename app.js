@@ -36,18 +36,20 @@ api.permissions_manager = {
     PERMISSION_PTVADMIN: 8,
     __permsCache: {},
     __defaultLevel: 6,
-    getPerm: function (pId, defaultPermLevel) {
-        this.__permsCache = api.sharedStorage.getItem("permissions") || {};
-        return this.__permsCache[pId] = (typeof this.__permsCache[pId] !== 'undefined') ? this.__permsCache[pId] : {id: pId, level: (typeof defaultPermLevel !== 'undefined' ? defaultPermLevel : this.PERMISSION_ADMIN | this.PERMISSION_MOD), whitelist: [], blacklist: []};
+    getPerm: function (channel, pId, defaultPermLevel) {
+        channel = channel.toLowerCase();
+        this.__permsCache = store.getItem("permissions") || {};
+        this.__permsCache[channel] = this.__permsCache[channel] || {};
+        return this.__permsCache[channel][pId] = (typeof this.__permsCache[channel][pId] !== 'undefined') ? this.__permsCache[channel][pId] : {id: pId, level: (typeof defaultPermLevel !== 'undefined' ? defaultPermLevel : this.PERMISSION_ADMIN | this.PERMISSION_MOD), whitelist: [], blacklist: []};
     },
     savePerms: function () {
-        api.sharedStorage.setItem("permissions", this.__permsCache);
+        store.setItem("permissions", this.__permsCache);
     },
     isOwner: function (userData) {
-        return userData.username.toLowerCase() === api.channel.toLowerCase();
+        return userData.username.toLowerCase() === userData.channel.toLowerCase();
     },
     userHasPermission: function (user, pId, defaultPermLevel) { // !onblacklist && (permLevelCheck || (onwhitelist && registered))
-        var p = this.getPerm(pId, defaultPermLevel);
+        var p = this.getPerm(user.channel.toLowerCase(), pId, defaultPermLevel);
         return !(p.blacklist.indexOf(user.username) !== -1) && ((p.level & this.getUserPermissionLevel(user) !== 0) || ((p.whitelist.indexOf(user.username) !== -1) && user.registered));
     },
     getUserPermissionLevel: function (userData) {
@@ -56,39 +58,39 @@ api.permissions_manager = {
                 (userData.mod * this.PERMISSION_MOD) +
                 (userData.ptvadmin * this.PERMISSION_PTVADMIN);
     },
-    addPermissionLevel: function (permissionId, level) {
-        var perm = this.getPerm(permissionId);
+    addPermissionLevel: function (channel, permissionId, level) {
+        var perm = this.getPerm(channel, permissionId);
         perm.level = perm.level | level;
         this.savePerms();
     },
-    removePermissionLevel: function (permissionId, level) {
-        var perm = this.getPerm(permissionId);
+    removePermissionLevel: function (channel, permissionId, level) {
+        var perm = this.getPerm(channel, permissionId);
         perm.level = perm.level ^ (perm.level & level);
         this.savePerms();
     },
-    whitelistUser: function (permissionId, username) {
-        var perm = this.getPerm(permissionId);
+    whitelistUser: function (channel, permissionId, username) {
+        var perm = this.getPerm(channel, permissionId);
         if (perm.whitelist.indexOf(username.toLowerCase()) === -1) {
             perm.whitelist.push(username.toLowerCase());
         }
         this.savePerms();
     },
-    unwhitelistUser: function (permissionId, username) {
-        var perm = this.getPerm(permissionId);
+    unwhitelistUser: function (channel, permissionId, username) {
+        var perm = this.getPerm(channel, permissionId);
         if ((index = perm.whitelist.indexOf(username.toLowerCase())) === -1) {
             perm.whitelist.splice(index, 1);
         }
         this.savePerms();
     },
-    blacklistUser: function (permissionId, username) {
-        var perm = this.getPerm(permissionId);
+    blacklistUser: function (channel, permissionId, username) {
+        var perm = this.getPerm(channel, permissionId);
         if (perm.blacklist.indexOf(username.toLowerCase()) === -1) {
             perm.blacklist.push(username.toLowerCase());
         }
         this.savePerms();
     },
-    unblacklistUser: function (permissionId, username) {
-        var perm = this.getPerm(permissionId);
+    unblacklistUser: function (channel, permissionId, username) {
+        var perm = this.getPerm(channel, permissionId);
         if ((index = perm.blacklist.indexOf(username.toLowerCase())) === -1) {
             perm.blacklist.splice(index, 1);
         }
@@ -99,16 +101,19 @@ api.permissions_manager = {
 api.user_manager = {
     __currentUserData: {},
     updateUserData: function (data) {
+        var channel = data.channel.toLowerCase();
+        this.__currentUserData[channel.toLowerCase()] = this.__currentUserData[channel.toLowerCase()] || {};
         var un = data.username.toLowerCase();
-        return this.__currentUserData[un] = (typeof this.__currentUserData[un] !== 'undefined') ? this.mergeUserData(this.__currentUserData[un], data) : data;
+        return this.__currentUserData[channel.toLowerCase()][un] = (typeof this.__currentUserData[channel.toLowerCase()][un] !== 'undefined') ? this.mergeUserData(this.__currentUserData[channel.toLowerCase()][un], data) : data;
     },
-    updateUserList: function (data) {
+    updateUserList: function (channel, data) {
         var fud = {};
         for (var i = 0; i < data.length; ++i) {
             var un = data[i].username.toLowerCase();
-            fud[data.username] = (typeof this.__currentUserData[un] !== 'undefined') ? this.mergeUserData(this.__currentUserData[un], data[i]) : data[i];
+            this.__currentUserData[channel.toLowerCase()] = this.__currentUserData[channel.toLowerCase()] || {};
+            fud[data.username] = (typeof this.__currentUserData[channel.toLowerCase()][un] !== 'undefined') ? this.mergeUserData(this.__currentUserData[channel.toLowerCase()][un], data[i]) : data[i];
         }
-        this.__currentUserData = fud;
+        this.__currentUserData[channel.toLowerCase()] = fud;
     },
     mergeUserData: function (sourceData, additionalData) {
         for (var attrname in additionalData) {
@@ -116,8 +121,9 @@ api.user_manager = {
         }
         return sourceData;
     },
-    getUserByName: function (username) {
-        return this.__currentUserData[username.toLowerCase()];
+    getUserByName: function (channel, username) {
+        this.__currentUserData[channel.toLowerCase()] = this.__currentUserData[channel.toLowerCase()] || {};
+        return this.__currentUserData[channel.toLowerCase()][username.toLowerCase()];
     }
 };
 
@@ -262,8 +268,8 @@ function initSocket(token,channel) {
     }).on("srvMsg", function (data) {
         api.Events.emit("srvMsg", data);
     }).on("channelUsers", function (data) {
-        api.user_manager.updateUserList(data);
-        api.Events.emit("channelUsers", data);
+        api.user_manager.updateUserList(channel, data);
+        api.Events.emit("channelUsers", data, channel);
     }).on("userMsg", function (data) {
         if(inputLog.indexOf(data.id) == -1){
             inputLog.push(data.id);
@@ -654,6 +660,7 @@ function plugin_cmd(args) {
                         maxLineWidth: "auto",
                         config: {
                             plugin_description: { maxWidth: 20, align: "center" },
+                            plugin_author: { maxWidth: 10, align: "center" },
                             plugin_name: { maxWidth: 10 }
                         }
                     })
