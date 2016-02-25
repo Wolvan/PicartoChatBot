@@ -52,7 +52,12 @@ function initPluginLoader() {
             return plugin_loader.listPlugins();
         },
         getPlugin: function (fileID) {
-            return plugin_loader.getPlugin(fileID);
+            var plugin = Object.create(plugin_loader.getPlugin(fileID));
+            plugin.start = function () { console.log("Plugins are not allowed to call another plugin's start function!"); }
+            plugin.stop = function () { console.log("Plugins are not allowed to call another plugin's stop function!"); }
+            plugin.load = function () { console.log("Plugins are not allowed to call another plugin's load function!"); }
+            plugin.unload = function () { console.log("Plugins are not allowed to call another plugin's unload function!"); }
+            return plugin;
         },
         getPluginInfo: function (fileID) {
             return plugin_loader.getPluginInfo(fileID);
