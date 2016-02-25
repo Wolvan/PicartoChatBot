@@ -19,6 +19,8 @@ This is an extendable bot for Picarto.TV chats. By itself it does nothing, that'
 	* `message_output.pbot.js` Print messages from chat to your output
 	* `request_q.pbot.js` A queue plugin for requests or commissions
 	* `logger.pbot.js` A plugin that logs the chat and makes the logs available through the integrated WebServer
+	* `perm_man.pbot.js` Manage the integrated Permissions System
+	* `timeout_man.pbot.js` Manage timeouts easily!
 
 ## Install the bot
 ### from npm (globally)
