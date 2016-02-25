@@ -16,11 +16,11 @@ html
                 -var h = date.getHours();
                 -var min = date.getMinutes();
                 -var s = date.getSeconds();
-                -return d+' '+m+' '+y+' '+h+':'+min+':'+s;
+                -return h+':'+min+':'+s;
             -} 
             tbody
                 each message in record.messages
-                    tr 
+                    tr(id="#{prettyDate(message.timestamp)}") 
                         td 
                             i #{prettyDate(message.timestamp)}
                         td 
