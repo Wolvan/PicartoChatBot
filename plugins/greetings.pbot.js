@@ -5,11 +5,11 @@ function handleMsg(data, checkWhitelist) {
     ];
     if (checkWhitelist) { if (whitelisted.indexOf(data.username) === -1) return; }
     if (data.msg.toLowerCase().indexOf("say goodnight") !== -1) {
-        api.Messages.send("Goodnight!");
+        api.Messages.send("Goodnight!", data.channel);
     } else if (data.msg.toLowerCase().indexOf("say goodbye") !== -1) {
-        api.Messages.send("Goodbye!");
+        api.Messages.send("Goodbye!", data.channel);
     } else if (data.msg.toLowerCase().indexOf("say hello") !== -1) {
-        api.Messages.send("Hello!");
+        api.Messages.send("Hello!", data.channel);
     }
 }
 module.exports = {
