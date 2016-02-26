@@ -520,6 +520,9 @@ if(config.channels && config.channels.length && !(config.channels.length === 1 &
             picarto.getToken(channel.channel, channel.name).then(function (res) {
                 initSocket(res.token,channel.channel);
                 api.readOnly[channel.channel.toLowerCase()] = res.readOnly;
+                if(channel.muted){
+                    api.mute_manager.mute(channel.channel);
+                }
                 if (res.readOnly) console.log(channel + ": Chat disabled guest login! Establishing ReadOnly Connection.");
             }).catch(function (reason) { console.log(channel.channel + ": Token acquisition failed: " + reason);});
         }
