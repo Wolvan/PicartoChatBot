@@ -292,6 +292,7 @@ function initServer(url) {
 }
 
 function initSocket(token,channel) {
+    if(!channel) return;
     // Connect all the socket events with the EventEmitter of the API
     socket[channel.toLowerCase()] = io.connect("https://nd1.picarto.tv:443", {
         secure: true,
@@ -516,7 +517,7 @@ if (token) {
 
 if(config.channels && config.channels.length && !(config.channels.length === 1 && config.channels[0].channel === "ExampleChannel")){
     config.channels.forEach(function(channel){
-        if(channel.enabled){
+        if(channel.enabled && channel.channel){
             picarto.getToken(channel.channel, channel.name).then(function (res) {
                 initSocket(res.token,channel.channel);
                 api.readOnly[channel.channel.toLowerCase()] = res.readOnly;
