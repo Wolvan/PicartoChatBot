@@ -132,32 +132,37 @@ api.timeout_manager = {
     __timeoutMsCache: {},
     __currentTimeoutsTimes: {},
     __defaultMs: 15000,
-    getTimeoutTime: function (id) {
-        return this.__currentTimeoutsTimes[id] = (typeof this.__currentTimeoutsTimes[id] !== 'undefined') ? this.__currentTimeoutsTimes[id] : 0;
+    getTimeoutTime: function (channel, id) {
+        this.__currentTimeoutsTimes[channel.toLowerCase()] = this.__currentTimeoutsTimes[channel.toLowerCase()] || {};
+        return this.__currentTimeoutsTimes[channel.toLowerCase()][id] = (typeof this.__currentTimeoutsTimes[channel.toLowerCase()][id] !== 'undefined') ? this.__currentTimeoutsTimes[channel.toLowerCase()][id] : 0;
     },
-    checkTimeout: function (id, defaultMs) {
-        if (Date.now() - this.getTimeoutTime(id) > this.getTimeoutMs(id, defaultMs)) {
-            this.__currentTimeoutsTimes[id] = Date.now();
+    checkTimeout: function (channel, id, defaultMs) {
+        this.__currentTimeoutsTimes[channel.toLowerCase()] = this.__currentTimeoutsTimes[channel.toLowerCase()] || {};
+        if (Date.now() - this.getTimeoutTime(channel, id) > this.getTimeoutMs(channel, id, defaultMs)) {
+            this.__currentTimeoutsTimes[channel.toLowerCase()][id] = Date.now();
             return true;
         }
         return false;
     },
-    getTimeRemaining: function (id, defaultMs) {
-        return Math.max(0, (this.getTimeoutMs(id, defaultMs) - (Date.now() - this.getTimeoutTime(id))));
+    getTimeRemaining: function (channel, id, defaultMs) {
+        return Math.max(0, (this.getTimeoutMs(channel, id, defaultMs) - (Date.now() - this.getTimeoutTime(channel, id))));
     },
-    setTimeout: function(id, ms) {
-        this.__timeoutMsCache[id] = ms;
+    setTimeout: function (channel, id, ms) {
+        this.__timeoutMsCache[channel.toLowerCase()] = this.__timeoutMsCache[channel.toLowerCase()] || {};
+        this.__timeoutMsCache[channel.toLowerCase()][id] = ms;
         this.saveTimeoutMs();
     },
-    clearTimeout: function(id) {
-        this.__currentTimeoutsTimes[id] = 0;
+    clearTimeout: function(channel, id) {
+        this.__currentTimeoutsTimes[channel.toLowerCase()] = this.__currentTimeoutsTimes[channel.toLowerCase()] || {};
+        this.__currentTimeoutsTimes[channel.toLowerCase()][id] = 0;
     },
-    getTimeoutMs: function (id, defaultMs) {
-        this.__timeoutMsCache = api.sharedStorage.getItem("timeouts") || {};
-        return (typeof this.__timeoutMsCache[id] !== 'undefined') ? this.__timeoutMsCache[id] : (typeof defaultMs !== 'undefined' ? defaultMs : this.__defaultMs);
+    getTimeoutMs: function (channel, id, defaultMs) {
+        this.__timeoutMsCache = store.getItem("timeouts") || {};
+        this.__timeoutMsCache[channel.toLowerCase()] = this.__timeoutMsCache[channel.toLowerCase()] || {};
+        return (typeof this.__timeoutMsCache[channel.toLowerCase()][id] !== 'undefined') ? this.__timeoutMsCache[channel.toLowerCase()][id] : (typeof defaultMs !== 'undefined' ? defaultMs : this.__defaultMs);
     },
     saveTimeoutMs: function () {
-        api.sharedStorage.setItem("timeouts", this.__timeoutMsCache);
+        store.setItem("timeouts", this.__timeoutMsCache);
     }
 };
 

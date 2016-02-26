@@ -15,7 +15,7 @@ function handleMessage(data, whisper) {
         if (cmd === '!settimeout') {
             if (api.permissions_manager.userHasPermission(data, "cmd.settimeout") || api.permissions_manager.isOwner(data)) {
                 if (pars.length === 3 && isInt(pars[2])) {
-                    api.timeout_manager.setTimeout(pars[1], parseInt(pars[2]));
+                    api.timeout_manager.setTimeout(data.channel, pars[1], parseInt(pars[2]));
                     sendMessage("Set timeout " + pars[1] + " to " + pars[2], data.username, data.channel);
                 } else {
                     sendMessage("Usage: !settimeout <timeoutId> <timeoutMs>", data.username, data.channel);
@@ -27,7 +27,7 @@ function handleMessage(data, whisper) {
         if (cmd === '!resettimeout') {
             if (api.permissions_manager.userHasPermission(data, "cmd.resettimeout") || api.permissions_manager.isOwner(data)) {
                 if (pars.length === 2) {
-                    api.timeout_manager.clearTimeout(pars[1]);
+                    api.timeout_manager.clearTimeout(data.channel, pars[1]);
                     sendMessage("Cleared timeout " + pars[1], data.username, data.channel);
                 } else {
                     sendMessage("Usage: !settimeout <timeoutId>", data.username, data.channel);
