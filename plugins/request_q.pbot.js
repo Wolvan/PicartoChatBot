@@ -56,7 +56,7 @@ function handleMsg(data) {
             for (var i = 0; i < requests.length; i++) {
                 setTimeout(function (index, request) {
                     if (index < 10) {
-                        api.Messages.send((index + 1) + " - " + request);
+                        api.Messages.send((index + 1) + " - " + request, data.channel);
                     }
                 }.bind(this, i, requests[i]), (i + 1) * 1000);
             }
