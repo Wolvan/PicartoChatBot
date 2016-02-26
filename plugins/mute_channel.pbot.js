@@ -14,8 +14,6 @@ function handleMsg(data) {
                 console.log(data.channel + " has been unmuted by " + data.username);
                 api.Messages.send("I'm back!",data.channel);
             }
-        } else {
-            api.Messages.whisper(data.username,"You don't have the required permission to use this command",data.channel);
         }
     }
 }
