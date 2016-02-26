@@ -58,9 +58,12 @@ function servePage(req,res) {
 module.exports = {
     meta_inf: {
         name: "Logger",
-        version: "1.0.0",
+        version: "1.0.1",
         description: "Logs picarto chats.",
-        author: "Amm"
+        author: "Amm",
+        storage_options: {
+            interval: 5000
+        }
     },
     load: function (_api, _storage) {
         api = _api;

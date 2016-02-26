@@ -20,8 +20,8 @@ function delReq(msg,index){
         }
     }
 }
-function addReq(msg,request){ 
-    var users = storage.getItem("request_store") || [{username:msg.username, requests:[]}];
+function addReq(msg,request){
+    var users = storage.getItem("request_store") || [{ username: msg.username, requests: [] }];
     for(var user in users){
         if(msg.username.toLowerCase() == users[user].username.toLowerCase()){
             if(user.length > 25){
@@ -37,9 +37,9 @@ function addReq(msg,request){
     return;
 }
 
-function addRequestToQEvent(request) {
-    addReq({username:"admin"},request);
-    api.Messages.send("Added request '" + request + "'",data.channel);
+function addRequestToQEvent(request, _username, _channel) {
+    addReq({username:_username || "admin"},request);
+    api.Messages.send("Added request '" + request + "'", _channel);
 }
 function handleMsg(data) {
     if (data.msg.toLowerCase().startsWith("!request")) {

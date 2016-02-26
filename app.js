@@ -17,9 +17,10 @@ var plugin_loader;
 var api = {};
 var socket = {};
 var store = storage.create({ dir: process.cwd() + "/storage/main_app" });
-var inputLog =[];
+var inputLog = [];
 store.initSync();
 
+api.version = "1.2.1";
 api.Events = new EventEmitter;
 api.Events.setMaxListeners(0);
 api.readOnly = {};
@@ -27,6 +28,137 @@ api.jade = jade;
 
 api.sharedStorage = storage.create({ dir: process.cwd() + "/storage/shared_storage" });
 api.sharedStorage.initSync();
+
+api.permissions_manager = {
+    PERMISSION_USER: 1,
+    PERMISSION_ADMIN: 2,
+    PERMISSION_MOD: 4,
+    PERMISSION_PTVADMIN: 8,
+    __permsCache: {},
+    __defaultLevel: 6,
+    getPerm: function (channel, pId, defaultPermLevel) {
+        channel = channel.toLowerCase();
+        this.__permsCache = store.getItem("permissions") || {};
+        this.__permsCache[channel] = this.__permsCache[channel] || {};
+        return this.__permsCache[channel][pId] = (typeof this.__permsCache[channel][pId] !== 'undefined') ? this.__permsCache[channel][pId] : {id: pId, level: (typeof defaultPermLevel !== 'undefined' ? defaultPermLevel : this.PERMISSION_ADMIN | this.PERMISSION_MOD), whitelist: [], blacklist: []};
+    },
+    savePerms: function () {
+        store.setItem("permissions", this.__permsCache);
+    },
+    isOwner: function (userData) {
+        return userData.username.toLowerCase() === userData.channel.toLowerCase();
+    },
+    userHasPermission: function (user, pId, defaultPermLevel) { // !onblacklist && (permLevelCheck || (onwhitelist && registered))
+        var p = this.getPerm(user.channel.toLowerCase(), pId, defaultPermLevel);
+        return !(p.blacklist.indexOf(user.username) !== -1) && ((p.level & this.getUserPermissionLevel(user) !== 0) || ((p.whitelist.indexOf(user.username) !== -1) && user.registered));
+    },
+    getUserPermissionLevel: function (userData) {
+        return (!(userData.admin || userData.mod || userData.ptvadmin) * this.PERMISSION_USER) +
+                (userData.admin * this.PERMISSION_ADMIN) +
+                (userData.mod * this.PERMISSION_MOD) +
+                (userData.ptvadmin * this.PERMISSION_PTVADMIN);
+    },
+    addPermissionLevel: function (channel, permissionId, level) {
+        var perm = this.getPerm(channel, permissionId);
+        perm.level = perm.level | level;
+        this.savePerms();
+    },
+    removePermissionLevel: function (channel, permissionId, level) {
+        var perm = this.getPerm(channel, permissionId);
+        perm.level = perm.level ^ (perm.level & level);
+        this.savePerms();
+    },
+    whitelistUser: function (channel, permissionId, username) {
+        var perm = this.getPerm(channel, permissionId);
+        if (perm.whitelist.indexOf(username.toLowerCase()) === -1) {
+            perm.whitelist.push(username.toLowerCase());
+        }
+        this.savePerms();
+    },
+    unwhitelistUser: function (channel, permissionId, username) {
+        var perm = this.getPerm(channel, permissionId);
+        if ((index = perm.whitelist.indexOf(username.toLowerCase())) === -1) {
+            perm.whitelist.splice(index, 1);
+        }
+        this.savePerms();
+    },
+    blacklistUser: function (channel, permissionId, username) {
+        var perm = this.getPerm(channel, permissionId);
+        if (perm.blacklist.indexOf(username.toLowerCase()) === -1) {
+            perm.blacklist.push(username.toLowerCase());
+        }
+        this.savePerms();
+    },
+    unblacklistUser: function (channel, permissionId, username) {
+        var perm = this.getPerm(channel, permissionId);
+        if ((index = perm.blacklist.indexOf(username.toLowerCase())) === -1) {
+            perm.blacklist.splice(index, 1);
+        }
+        this.savePerms();
+    }
+};
+
+api.user_manager = {
+    __currentUserData: {},
+    updateUserData: function (data) {
+        var channel = data.channel.toLowerCase();
+        this.__currentUserData[channel.toLowerCase()] = this.__currentUserData[channel.toLowerCase()] || {};
+        var un = data.username.toLowerCase();
+        return this.__currentUserData[channel.toLowerCase()][un] = (typeof this.__currentUserData[channel.toLowerCase()][un] !== 'undefined') ? this.mergeUserData(this.__currentUserData[channel.toLowerCase()][un], data) : data;
+    },
+    updateUserList: function (channel, data) {
+        var fud = {};
+        for (var i = 0; i < data.length; ++i) {
+            var un = data[i].username.toLowerCase();
+            this.__currentUserData[channel.toLowerCase()] = this.__currentUserData[channel.toLowerCase()] || {};
+            fud[data.username] = (typeof this.__currentUserData[channel.toLowerCase()][un] !== 'undefined') ? this.mergeUserData(this.__currentUserData[channel.toLowerCase()][un], data[i]) : data[i];
+        }
+        this.__currentUserData[channel.toLowerCase()] = fud;
+    },
+    mergeUserData: function (sourceData, additionalData) {
+        for (var attrname in additionalData) {
+            sourceData[attrname] = additionalData[attrname];
+        }
+        return sourceData;
+    },
+    getUserByName: function (channel, username) {
+        this.__currentUserData[channel.toLowerCase()] = this.__currentUserData[channel.toLowerCase()] || {};
+        return this.__currentUserData[channel.toLowerCase()][username.toLowerCase()];
+    }
+};
+
+api.timeout_manager = {
+    __timeoutMsCache: {},
+    __currentTimeoutsTimes: {},
+    __defaultMs: 15000,
+    getTimeoutTime: function (id) {
+        return this.__currentTimeoutsTimes[id] = (typeof this.__currentTimeoutsTimes[id] !== 'undefined') ? this.__currentTimeoutsTimes[id] : 0;
+    },
+    checkTimeout: function (id, defaultMs) {
+        if (Date.now() - this.getTimeoutTime(id) > this.getTimeoutMs(id, defaultMs)) {
+            this.__currentTimeoutsTimes[id] = Date.now();
+            return true;
+        }
+        return false;
+    },
+    getTimeRemaining: function (id, defaultMs) {
+        return Math.max(0, (this.getTimeoutMs(id, defaultMs) - (Date.now() - this.getTimeoutTime(id))));
+    },
+    setTimeout: function(id, ms) {
+        this.__timeoutMsCache[id] = ms;
+        this.saveTimeoutMs();
+    },
+    clearTimeout: function(id) {
+        this.__currentTimeoutsTimes[id] = 0;
+    },
+    getTimeoutMs: function (id, defaultMs) {
+        this.__timeoutMsCache = api.sharedStorage.getItem("timeouts") || {};
+        return (typeof this.__timeoutMsCache[id] !== 'undefined') ? this.__timeoutMsCache[id] : (typeof defaultMs !== 'undefined' ? defaultMs : this.__defaultMs);
+    },
+    saveTimeoutMs: function () {
+        api.sharedStorage.setItem("timeouts", this.__timeoutMsCache);
+    }
+};
 
 function initPluginLoader() {
     var loader_storage = storage.create({ dir: process.cwd() + "/storage/plugin_loader" });
@@ -53,7 +185,12 @@ function initPluginLoader() {
             return plugin_loader.listPlugins();
         },
         getPlugin: function (fileID) {
-            return plugin_loader.getPlugin(fileID);
+            var plugin = Object.create(plugin_loader.getPlugin(fileID));
+            plugin.start = function () { console.log("Plugins are not allowed to call another plugin's start function!"); }
+            plugin.stop = function () { console.log("Plugins are not allowed to call another plugin's stop function!"); }
+            plugin.load = function () { console.log("Plugins are not allowed to call another plugin's load function!"); }
+            plugin.unload = function () { console.log("Plugins are not allowed to call another plugin's unload function!"); }
+            return plugin;
         },
         getPluginInfo: function (fileID) {
             return plugin_loader.getPluginInfo(fileID);
@@ -73,18 +210,20 @@ function initPluginLoader() {
     }
 }
 
-function initServer(url){
-    var server = http.createServer(function(req, res) {
+function initServer(url) {
+    var server = http.createServer(function (req, res) {
         res.writeHead(200);
-        api.Events.emit("http",req,res);
+        api.Events.emit("http", req, res);
         
         var path = req.url.split('/');
-        if(path.length < 3 && path[1] == ''){
-            api.jade.renderFile(process.cwd() + '/views/index.jade',{urls:req.collection.sort(function(a, b) { 
-                if (a[0] < b[0]) return -1;
-                if (a[0] > b[0]) return 1;
-                return 0;
-            })}, function(err,html){
+        if (path.length < 3 && path[1] == '') {
+            api.jade.renderFile(process.cwd() + '/views/index.jade', {
+                urls: req.collection.sort(function (a, b) {
+                    if (a[0] < b[0]) return -1;
+                    if (a[0] > b[0]) return 1;
+                    return 0;
+                })
+            }, function (err, html) {
                 res.write(html);
             });
         }
@@ -129,7 +268,8 @@ function initSocket(token,channel) {
     }).on("srvMsg", function (data) {
         api.Events.emit("srvMsg", data);
     }).on("channelUsers", function (data) {
-        api.Events.emit("channelUsers", data);
+        api.user_manager.updateUserList(channel, data);
+        api.Events.emit("channelUsers", data, channel);
     }).on("userMsg", function (data) {
         if(inputLog.indexOf(data.id) == -1){
             inputLog.push(data.id);
@@ -137,7 +277,7 @@ function initSocket(token,channel) {
             data.msg = entities.decode(data.msg);
             data.channel = channel;
             data.whisper = false;
-            api.Events.emit("userMsg", data);
+            api.Events.emit("userMsg", api.user_manager.updateUserData(data));
         }
     }).on("meMsg", function (data) {
         api.Events.emit("meMsg", data);
@@ -158,7 +298,7 @@ function initSocket(token,channel) {
             data.msg = entities.decode(data.msg);
             data.channel = channel;
             data.whisper = true;
-            api.Events.emit("whisper", data);
+            api.Events.emit("whisper", api.user_manager.updateUserData(data));
         }
     }).on("color", function (data) {
         api.Events.emit("color", data);
@@ -268,22 +408,36 @@ plugin_loader.listPlugins().forEach(function (item) {
     }
 });
 
+var token;
+var name;
+var channel;
+config.http = config.http || {};
+if (process.env.PICARTO_TOKEN) token = process.env.PICARTO_TOKEN;
+if (process.env.PICARTO_CHANNEL) channel = process.env.PICARTO_CHANNEL;
+if (process.env.PICARTO_NAME) name = process.env.PICARTO_NAME;
+if (process.env.PICARTO_PORT) config.http.port = process.env.PICARTO_PORT;
+if (process.env.PICARTO_URL) config.http.url = process.env.PICARTO_URL;
+
 // Load commandline args as env variables
-commander.version("1.2.0").usage("[options]")
+commander.version(api.version).usage("[options]")
 .option("-c, --channel <Picarto Channel>", "Set channel to connect to.")
 .option("-n, --botname <Bot name>", "Set the bot's name.")
 .option("-t, --token <Token>", "Use an already existing token to login")
+.option("-p, --port <Port>","Set a custom port")
+.option("-u, --url <URL>","Set a custom URL")
 .parse(process.argv);
-if (commander.token) var token = commander.token;
-if (commander.botname) var name = commander.botname;
-if (commander.channel) var channel = commander.channel;
+if (commander.token) token = commander.token;
+if (commander.botname) name = commander.botname;
+if (commander.channel) channel = commander.channel;
+if (commander.port) config.http.port = commander.port;
+if (commander.url) config.http.url = commander.url;
 
 if(config.http){
     if(config.http.enabled){
         initServer(config.http);
     } 
 } else {
-    initServer({url:"http://localhost",port:"10001"});
+    initServer({url:"http://localhost",port:10001});
 }
 
 var SET_PICARTO_LOGIN = 0;
@@ -300,13 +454,13 @@ if (token) {
 } else if (channel) {
     console.log("Attempting ReadOnly connection, please be patient...");
     picarto.getROToken(channel).then(function (res) { api.readOnly[channel.toLowerCase()] = res.readOnly; initSocket(res.token,channel); }).catch(function (reason) { console.log("Token acquisition failed: " + reason); });
-} else if(config.channels.length == 0) {
+} else if(config.channels.length === 0 || (config.channels.length === 1 && config.channels[0].channel === "ExampleChannel")) {
     SET_PICARTO_LOGIN = 1;
     console.log("No login information given.");
     process.stdout.write("Channel: ");
 }
 
-if(config.channels){
+if(config.channels && config.channels.length && !(config.channels.length === 1 && config.channels[0].channel === "ExampleChannel")){
     config.channels.forEach(function(channel){
         if(channel.enabled){
             picarto.getToken(channel.channel, channel.name).then(function (res) {
@@ -506,6 +660,7 @@ function plugin_cmd(args) {
                         maxLineWidth: "auto",
                         config: {
                             plugin_description: { maxWidth: 20, align: "center" },
+                            plugin_author: { maxWidth: 10, align: "center" },
                             plugin_name: { maxWidth: 10 }
                         }
                     })
@@ -612,6 +767,7 @@ process.stdin.on('readable', function () {
                     process.env.PICARTO_CHANNEL = args[0];
                     SET_PICARTO_LOGIN = 2;
                 } else {
+                    process.stdout.write("Channel: ");
                     SET_PICARTO_LOGIN = 1;
                 }
                 break;
@@ -623,7 +779,7 @@ process.stdin.on('readable', function () {
             case "reconnect":
                 if(args[0] && typeof socket[args[0].toLowerCase()] !== 'undefined'){
                     socket[args[0].toLowerCase()].disconnect();
-                    socket[args[0].toLowerCase()].reconnect();
+                    socket[args[0].toLowerCase()].connect();
                     break;
                 } else if(!args[0]){
                     console.log("Please specify channel");

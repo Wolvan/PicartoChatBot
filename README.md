@@ -1,6 +1,10 @@
 ﻿# PicartoTV Chat Bot
 ####An extendable bot for your Picarto Chat
 
+[![NPM](https://nodei.co/npm/picarto-chat-bot.png?downloads=true&downloadRank=true&stars=true)](https://nodei.co/npm/picarto-chat-bot/) 
+
+[![Join the chat at https://gitter.im/Wolvan/PicartoChatBot](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/Wolvan/PicartoChatBot?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![npm version](https://badge.fury.io/js/picarto-chat-bot.svg)](https://badge.fury.io/js/picarto-chat-bot)
+
 ## Introduction
 This is an extendable bot for Picarto.TV chats. By itself it does nothing, that's where Plugins come in handy. Drop plugin files into the `/plugins` directory, load them from the bot console (or by restarting completely) and enjoy it's functionality.
 
@@ -15,6 +19,8 @@ This is an extendable bot for Picarto.TV chats. By itself it does nothing, that'
 	* `message_output.pbot.js` Print messages from chat to your output
 	* `request_q.pbot.js` A queue plugin for requests or commissions
 	* `logger.pbot.js` A plugin that logs the chat and makes the logs available through the integrated WebServer
+	* `perm_man.pbot.js` Manage the integrated Permissions System
+	* `timeout_man.pbot.js` Manage timeouts easily!
 
 ## Install the bot
 ### from npm (globally)
