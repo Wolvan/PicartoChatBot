@@ -25,6 +25,7 @@ api.Events = new EventEmitter;
 api.Events.setMaxListeners(0);
 api.readOnly = {};
 api.jade = jade;
+api.mutedChannels = {};
 
 api.sharedStorage = storage.create({ dir: process.cwd() + "/storage/shared_storage" });
 api.sharedStorage.initSync();
@@ -746,6 +747,10 @@ process.stdin.on('readable', function () {
             case "say":
                 channel = args.shift();
                 api.Messages.send(args.join(" "),channel);
+                break;
+            case "mute":
+                break;
+            case "unmute":
                 break;
             case "whisper":
             case "w":
