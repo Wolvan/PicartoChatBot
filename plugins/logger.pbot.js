@@ -71,10 +71,12 @@ module.exports = {
     },
     start: function () {
         api.Events.on("userMsg", handleMsg);
+        api.Events.on("userMsgDuplicate", handleMsg);
         api.Events.on("http", servePage);
     },
     stop: function () {
         api.Events.removeListener("userMsg", handleMsg);
+        api.Events.removeListener("userMsgDuplicate", handleMsg);
         api.Events.removeListener("http", servePage);
     }
 }
