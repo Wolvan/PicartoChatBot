@@ -6,13 +6,13 @@ function handleMessage(data) {
         var pars = data.msg.split(' ');
         var cmd = pars[0].toLowerCase();
 
-        var messages = storage.getItem("messages") || {};
+        var messages = storage.getItem("messages_" + data.channel) || {};
 
         if (cmd === '!addcmd' || cmd === '!setcmd') {
             if (api.permissions_manager.userHasPermission(data, "cmd.addcmd") || api.permissions_manager.isOwner(data)) {
                 if (pars.length > 2) {
                     messages[pars[1].toLowerCase().replace(/^!/, '')] = pars.slice(2).join(' ');
-                    storage.setItem("messages", messages);
+                    storage.setItem("messages_" + data.channel, messages);
                 } else {
                     sendMessage(data, "Usage: !addcmd <command> <message...>", true);
                 }
@@ -24,7 +24,7 @@ function handleMessage(data) {
             if (api.permissions_manager.userHasPermission(data, "cmd.delcmd") || api.permissions_manager.isOwner(data)) {
                 if (pars.length > 1) {
                     delete messages[pars[1].toLowerCase().replace(/^!/, '')];
-                    storage.setItem("messages", messages);
+                    storage.setItem("messages_" + data.channel, messages);
                 } else {
                     sendMessage(data, "Usage: !delcmd <command>", true);
                 }

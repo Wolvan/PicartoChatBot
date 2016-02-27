@@ -6,13 +6,13 @@ function handleMessage(data) {
         var pars = data.msg.split(' ');
         var cmd = pars[0].toLowerCase();
 
-        var commands = storage.getItem("commands") || {};
+        var commands = storage.getItem("commands_" + data.channel) || {};
 
         if (cmd === '!addalias' || cmd === '!setalias') {
             if (api.permissions_manager.userHasPermission(data, "cmd.addalias") || api.permissions_manager.isOwner(data)) {
                 if (pars.length > 2) {
                     commands[pars[1].toLowerCase().replace(/^!/, '')] = pars.slice(2).join(' ');
-                    storage.setItem("commands", commands);
+                    storage.setItem("commands_" + data.channel, commands);
                     sendMessage(data, "Added '!" + pars[1].toLowerCase().replace(/^!/, '') + "' command.", true);
                 } else {
                     sendMessage(data, "Usage: !addalias <command> <cmdmessage...>", true);
@@ -25,7 +25,7 @@ function handleMessage(data) {
             if (api.permissions_manager.userHasPermission(data, "cmd.delalias") || api.permissions_manager.isOwner(data)) {
                 if (pars.length > 1) {
                     delete commands[pars[1].toLowerCase().replace(/^!/, '')];
-                    storage.setItem("commands", commands);
+                    storage.setItem("commands_" + data.channel, commands);
                     sendMessage(data, "Removed '!" + pars[1].toLowerCase().replace(/^!/, '') + "' command.", true);
                 } else {
                     sendMessage(data, "Usage: !delalias <command>", true);
