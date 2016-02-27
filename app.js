@@ -260,7 +260,6 @@ function initSocket(token,channel) {
         console.log("Disconnected from " + channel);
         api.Events.emit("disconnected", reason);
     }).on("reconnect", function () {
-        connected();
         api.Events.emit("reconnected");
     }).on("reconnect_attempt", function () {
         api.Events.emit("reconnect_attempt");
@@ -398,7 +397,6 @@ function initSocket(token,channel) {
 
 initPluginLoader();
 // Load all Plugins in the ./plugins directory
-api.Events.setMaxListeners(plugin_loader.listPlugins().length);
 var quiet_loading = true;
 plugin_loader.listPlugins().forEach(function (item) {
     var plugin_state = plugin_loader.getInitialPluginState(item);
