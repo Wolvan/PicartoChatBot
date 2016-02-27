@@ -29,6 +29,23 @@ api.jade = jade;
 api.sharedStorage = storage.create({ dir: process.cwd() + "/storage/shared_storage" });
 api.sharedStorage.initSync();
 
+api.mute_manager = {
+      __channels: [],
+      isMuted: function(channel){
+          return this.__channels.indexOf(channel.toLowerCase()) > -1;
+      },
+      mute: function(channel){
+          if(this.__channels.indexOf(channel.toLowerCase()) === -1){
+              this.__channels.push(channel.toLowerCase());
+          }
+      },
+      unmute: function(channel){
+          var index = this.__channels.indexOf(channel.toLowerCase());
+          if(index > -1){
+            this.__channels.splice(index,1);
+          }
+      }
+};
 api.permissions_manager = {
     PERMISSION_USER: 1,
     PERMISSION_ADMIN: 2,
@@ -46,7 +63,29 @@ api.permissions_manager = {
         store.setItem("permissions", this.__permsCache);
     },
     isOwner: function (userData) {
-        return userData.username.toLowerCase() === userData.channel.toLowerCase();
+        return (userData.username.toLowerCase() === userData.channel.toLowerCase()) || this.isGlobalAdmin(userData);
+    },
+    isGlobalAdmin: function (userData){
+        var globalAdmins = store.getItem("admins") || [];
+        return globalAdmins.indexOf(userData.username.toLowerCase()) > -1;
+    },
+    addGlobalAdmin: function(username){
+        var globalAdmins = store.getItem("admins") || [];
+        if(globalAdmins.indexOf(username.toLowerCase()) === -1){
+            globalAdmins.push(username.toLowerCase());
+            store.setItem("admins",globalAdmins);
+        }
+    },
+    removeGlobalAdmin: function(username){
+        var globalAdmins = store.getItem("admins") || [];
+        var index = globalAdmins.indexOf(username.toLowerCase());
+        if(index > -1){
+            globalAdmins.splice(index,1);
+            store.setItem("admins",globalAdmins);
+        }
+    },
+    getGlobalAdmins: function(){
+        return store.getItem("admins") || [];
     },
     userHasPermission: function (user, pId, defaultPermLevel) { // !onblacklist && (permLevelCheck || (onwhitelist && registered))
         var p = this.getPerm(user.channel.toLowerCase(), pId, defaultPermLevel);
@@ -253,6 +292,7 @@ function initServer(url) {
 }
 
 function initSocket(token,channel) {
+    if(!channel) return;
     // Connect all the socket events with the EventEmitter of the API
     socket[channel.toLowerCase()] = io.connect("https://nd1.picarto.tv:443", {
         secure: true,
@@ -283,6 +323,8 @@ function initSocket(token,channel) {
             data.channel = channel;
             data.whisper = false;
             api.Events.emit("userMsg", api.user_manager.updateUserData(data));
+        } else {
+            api.Events.emit("userMsgDuplicate", api.user_manager.updateUserData(data));
         }
     }).on("meMsg", function (data) {
         api.Events.emit("meMsg", data);
@@ -304,6 +346,8 @@ function initSocket(token,channel) {
             data.channel = channel;
             data.whisper = true;
             api.Events.emit("whisper", api.user_manager.updateUserData(data));
+        } else {
+            api.Events.emit("whisperDuplicate", api.user_manager.updateUserData(data));
         }
     }).on("color", function (data) {
         api.Events.emit("color", data);
@@ -355,6 +399,9 @@ function initSocket(token,channel) {
                 console.log("Bot runs in ReadOnly Mode. Messages can not be sent");
                 return;
             }
+            if(api.mute_manager.isMuted(channel)){
+                return;
+            }
             if (message.length > 255) {
                 socket[channel.toLowerCase()].emit("chatMsg", {
                     msg: "This message was too long for Picarto: " + message.length + " characters. Sorry."
@@ -375,6 +422,9 @@ function initSocket(token,channel) {
             } 
             if (api.readOnly[channel.toLowerCase()]) {
                 console.log("Bot runs in ReadOnly Mode. Messages can not be sent");
+                return;
+            }
+            if(api.mute_manager.isMuted(channel)){
                 return;
             }
             if ((message.length + 4 + to.length) > 255) {
@@ -467,10 +517,13 @@ if (token) {
 
 if(config.channels && config.channels.length && !(config.channels.length === 1 && config.channels[0].channel === "ExampleChannel")){
     config.channels.forEach(function(channel){
-        if(channel.enabled){
+        if(channel.enabled && channel.channel){
             picarto.getToken(channel.channel, channel.name).then(function (res) {
                 initSocket(res.token,channel.channel);
                 api.readOnly[channel.channel.toLowerCase()] = res.readOnly;
+                if(channel.muted){
+                    api.mute_manager.mute(channel.channel);
+                }
                 if (res.readOnly) console.log(channel + ": Chat disabled guest login! Establishing ReadOnly Connection.");
             }).catch(function (reason) { console.log(channel.channel + ": Token acquisition failed: " + reason);});
         }
@@ -752,6 +805,47 @@ process.stdin.on('readable', function () {
                 channel = args.shift();
                 api.Messages.send(args.join(" "),channel);
                 break;
+            case "admin":
+                var subcmd = args.splice(0, 1)[0];
+                switch(subcmd){
+                    case "add":
+                        if(args[0]){
+                            api.permissions_manager.addGlobalAdmin(args[0]);
+                            console.log("Added " + args[0] + " as a global admin");
+                        }
+                        break;
+                    case "delete":
+                    case "del":
+                        if(args[0]){
+                            api.permissions_manager.removeGlobalAdmin(args[0]);
+                            console.log("Deleted " + args[0] + " from the global admin list");
+                        }
+                        break;
+                    case "list":
+                        api.permissions_manager.getGlobalAdmins().forEach(function(admin){
+                            console.log(admin);
+                        });
+                        break;
+                    default: 
+                        console.log("Usage: admin <add|del|list> <username>");
+                }
+                break;
+            case "mute":
+                if(args[0]){
+                    api.mute_manager.mute(args[0]);
+                    console.log("Channel " + args[0] + " is muted");
+                } else {
+                    console.log("Usage: mute <channel>");
+                }
+                break;
+            case "unmute":
+                if(args[0]){
+                    api.mute_manager.unmute(args[0]);
+                    console.log("Channel " + args[0] + " is not muted");
+                } else {
+                    console.log("Usage: mute <channel>");
+                }
+                break;
             case "whisper":
             case "w":
                 var channel = args.shift();
@@ -797,7 +891,7 @@ process.stdin.on('readable', function () {
                 console.log("Current Sockets");
                 for(var key in socket){
                     if (socket.hasOwnProperty(key)) {
-                        console.log("Channel " + key + " is " + (socket[key].connected ? "connected" : "disconnected"));
+                        console.log("Channel " + key + " is " + (socket[key].connected ? "connected" : "disconnected") + " and " + (api.mute_manager.isMuted(key) ? "muted" : "unmuted"));
                     }
                 }
                 break;
