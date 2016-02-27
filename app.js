@@ -24,6 +24,7 @@ api.version = "1.2.1";
 api.Events = new EventEmitter;
 api.Events.setMaxListeners(0);
 api.readOnly = {};
+api.botName = {};
 api.jade = jade;
 
 api.sharedStorage = storage.create({ dir: process.cwd() + "/storage/shared_storage" });
@@ -110,8 +111,9 @@ api.user_manager = {
         var fud = {};
         for (var i = 0; i < data.length; ++i) {
             var un = data[i].username.toLowerCase();
+            data[i].channel = channel;
             this.__currentUserData[channel.toLowerCase()] = this.__currentUserData[channel.toLowerCase()] || {};
-            fud[data.username] = (typeof this.__currentUserData[channel.toLowerCase()][un] !== 'undefined') ? this.mergeUserData(this.__currentUserData[channel.toLowerCase()][un], data[i]) : data[i];
+            fud[data[i].username.toLowerCase()] = (typeof this.__currentUserData[channel.toLowerCase()][un] !== 'undefined') ? this.mergeUserData(this.__currentUserData[channel.toLowerCase()][un], data[i]) : data[i];
         }
         this.__currentUserData[channel.toLowerCase()] = fud;
     },
@@ -124,6 +126,9 @@ api.user_manager = {
     getUserByName: function (channel, username) {
         this.__currentUserData[channel.toLowerCase()] = this.__currentUserData[channel.toLowerCase()] || {};
         return this.__currentUserData[channel.toLowerCase()][username.toLowerCase()];
+    },
+    isBot: function (userData) {
+        return api.botName[userData.channel.toLowerCase()] && userData.username.toLowerCase() === api.botName[userData.channel.toLowerCase()].toLowerCase();
     }
 };
 
@@ -285,7 +290,15 @@ function initSocket(token,channel) {
             api.Events.emit("userMsg", api.user_manager.updateUserData(data));
         }
     }).on("meMsg", function (data) {
-        api.Events.emit("meMsg", data);
+        if(inputLog.indexOf(data.id) == -1){
+            inputLog.push(data.id);
+            if(inputLog.length > 50) inputLog.shift();
+            data.msg = entities.decode(data.msg);
+            data.channel = channel;
+            data.whisper = false;
+            data.me = true;
+            api.Events.emit("meMsg", api.user_manager.updateUserData(data));
+        }
     }).on("globalMsg", function (data) {
         api.Events.emit("globalMsg", data);
     }).on("clearChat", function () {
@@ -297,14 +310,10 @@ function initSocket(token,channel) {
     }).on("modList", function (data) {
         api.Events.emit("modList", data);
     }).on("whisper", function (data) {
-        if(inputLog.indexOf(data.id) == -1){
-            inputLog.push(data.id);
-            if(inputLog.length > 50) inputLog.shift();
-            data.msg = entities.decode(data.msg);
-            data.channel = channel;
-            data.whisper = true;
-            api.Events.emit("whisper", api.user_manager.updateUserData(data));
-        }
+        data.msg = entities.decode(data.msg);
+        data.channel = channel;
+        data.whisper = true;
+        api.Events.emit("whisper", api.user_manager.updateUserData(data));
     }).on("color", function (data) {
         api.Events.emit("color", data);
     }).on("onlineState", function (data) {
@@ -454,6 +463,7 @@ if (token) {
     picarto.getToken(channel, name).then(function (res) {
         initSocket(res.token,channel);
         api.readOnly[channel.toLowerCase()] = res.readOnly;
+        api.botName[channel.toLowerCase()] = name;
         if (res.readOnly) console.log("Chat disabled guest login! Establishing ReadOnly Connection.");
     }).catch(function (reason) { console.log("Token acquisition failed: " + reason);});
 } else if (channel) {
@@ -470,7 +480,8 @@ if(config.channels && config.channels.length && !(config.channels.length === 1 &
         if(channel.enabled){
             picarto.getToken(channel.channel, channel.name).then(function (res) {
                 initSocket(res.token,channel.channel);
-                api.readOnly[channel.channel.toLowerCase()] = res.readOnly;
+                api.readOnly[channel.channel.toLowerCase()] = res.readOnly
+                api.botName[channel.toLowerCase()] = channel.name;
                 if (res.readOnly) console.log(channel + ": Chat disabled guest login! Establishing ReadOnly Connection.");
             }).catch(function (reason) { console.log(channel.channel + ": Token acquisition failed: " + reason);});
         }
