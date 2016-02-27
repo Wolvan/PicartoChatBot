@@ -1,16 +1,17 @@
 doctype html
 html
-  head
-    title Index
-  body
-    #container
-        p Here is a list of the avaliable URLs
-        table
-            each url in urls
-                tr 
-                    td 
-                        b #{url[0]}
-                    td 
-                        i #{url[1]}
-                    td -
-                    td #{url[2]}
+    include ./includes/head.jade
+    body
+        .container
+            include ./includes/header.jade
+            p Here is a list of the avaliable URLs
+            table
+                each url in urls
+                    tr 
+                        td 
+                            b #{url[0]}
+                        td 
+                            a(href=url[1])
+                                i #{url[1]}
+                        td -
+                        td #{url[2]}
