@@ -78,7 +78,8 @@ api.permissions_manager = {
     },
     unwhitelistUser: function (channel, permissionId, username) {
         var perm = this.getPerm(channel, permissionId);
-        if ((index = perm.whitelist.indexOf(username.toLowerCase())) === -1) {
+        var index = perm.whitelist.indexOf(username.toLowerCase());
+        if (index === -1) {
             perm.whitelist.splice(index, 1);
         }
         this.savePerms();
@@ -92,7 +93,8 @@ api.permissions_manager = {
     },
     unblacklistUser: function (channel, permissionId, username) {
         var perm = this.getPerm(channel, permissionId);
-        if ((index = perm.blacklist.indexOf(username.toLowerCase())) === -1) {
+        var index = perm.blacklist.indexOf(username.toLowerCase());
+        if (index === -1) {
             perm.blacklist.splice(index, 1);
         }
         this.savePerms();
@@ -138,10 +140,9 @@ api.timeout_manager = {
     __defaultMs: 15000,
     getTimeoutTime: function (channel, id) {
         this.__currentTimeoutsTimes[channel.toLowerCase()] = this.__currentTimeoutsTimes[channel.toLowerCase()] || {};
-        return this.__currentTimeoutsTimes[channel.toLowerCase()][id] = (typeof this.__currentTimeoutsTimes[channel.toLowerCase()][id] !== 'undefined') ? this.__currentTimeoutsTimes[channel.toLowerCase()][id] : 0;
+        return this.__currentTimeoutsTimes[channel.toLowerCase()][id] = this.__currentTimeoutsTimes[channel.toLowerCase()][id] || 0;
     },
     checkTimeout: function (channel, id, defaultMs) {
-        this.__currentTimeoutsTimes[channel.toLowerCase()] = this.__currentTimeoutsTimes[channel.toLowerCase()] || {};
         if (Date.now() - this.getTimeoutTime(channel, id) > this.getTimeoutMs(channel, id, defaultMs)) {
             this.__currentTimeoutsTimes[channel.toLowerCase()][id] = Date.now();
             return true;
@@ -163,7 +164,7 @@ api.timeout_manager = {
     getTimeoutMs: function (channel, id, defaultMs) {
         this.__timeoutMsCache = store.getItem("timeouts") || {};
         this.__timeoutMsCache[channel.toLowerCase()] = this.__timeoutMsCache[channel.toLowerCase()] || {};
-        return (typeof this.__timeoutMsCache[channel.toLowerCase()][id] !== 'undefined') ? this.__timeoutMsCache[channel.toLowerCase()][id] : (typeof defaultMs !== 'undefined' ? defaultMs : this.__defaultMs);
+        return this.__timeoutMsCache[channel.toLowerCase()][id] || (typeof defaultMs !== 'undefined' ? defaultMs : this.__defaultMs);
     },
     saveTimeoutMs: function () {
         store.setItem("timeouts", this.__timeoutMsCache);
