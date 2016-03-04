@@ -230,6 +230,7 @@ plugins/*
 !plugins/logger.pbot.js
 !plugins/perm_man.pbot.js
 !plugins/timeout_man.pbot.js
+!plugins/mute_channel.pbot.js
 
 #config
 config.json
