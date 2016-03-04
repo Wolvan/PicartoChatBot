@@ -24,6 +24,7 @@ api.version = "1.2.1";
 api.Events = new EventEmitter;
 api.Events.setMaxListeners(0);
 api.readOnly = {};
+api.botName = {};
 api.jade = jade;
 
 api.sharedStorage = storage.create({ dir: process.cwd() + "/storage/shared_storage" });
@@ -89,7 +90,7 @@ api.permissions_manager = {
     },
     userHasPermission: function (user, pId, defaultPermLevel) { // !onblacklist && (permLevelCheck || (onwhitelist && registered))
         var p = this.getPerm(user.channel.toLowerCase(), pId, defaultPermLevel);
-        return !(p.blacklist.indexOf(user.username) !== -1) && ((p.level & this.getUserPermissionLevel(user) !== 0) || ((p.whitelist.indexOf(user.username) !== -1) && user.registered));
+        return !(p.blacklist.indexOf(user.username) !== -1) && (((p.level & this.getUserPermissionLevel(user)) !== 0) || ((p.whitelist.indexOf(user.username) !== -1) && user.registered));
     },
     getUserPermissionLevel: function (userData) {
         return (!(userData.admin || userData.mod || userData.ptvadmin) * this.PERMISSION_USER) +
@@ -116,7 +117,8 @@ api.permissions_manager = {
     },
     unwhitelistUser: function (channel, permissionId, username) {
         var perm = this.getPerm(channel, permissionId);
-        if ((index = perm.whitelist.indexOf(username.toLowerCase())) === -1) {
+        var index = perm.whitelist.indexOf(username.toLowerCase());
+        if (index === -1) {
             perm.whitelist.splice(index, 1);
         }
         this.savePerms();
@@ -130,7 +132,8 @@ api.permissions_manager = {
     },
     unblacklistUser: function (channel, permissionId, username) {
         var perm = this.getPerm(channel, permissionId);
-        if ((index = perm.blacklist.indexOf(username.toLowerCase())) === -1) {
+        var index = perm.blacklist.indexOf(username.toLowerCase());
+        if (index === -1) {
             perm.blacklist.splice(index, 1);
         }
         this.savePerms();
@@ -149,8 +152,9 @@ api.user_manager = {
         var fud = {};
         for (var i = 0; i < data.length; ++i) {
             var un = data[i].username.toLowerCase();
+            data[i].channel = channel;
             this.__currentUserData[channel.toLowerCase()] = this.__currentUserData[channel.toLowerCase()] || {};
-            fud[data.username] = (typeof this.__currentUserData[channel.toLowerCase()][un] !== 'undefined') ? this.mergeUserData(this.__currentUserData[channel.toLowerCase()][un], data[i]) : data[i];
+            fud[data[i].username.toLowerCase()] = (typeof this.__currentUserData[channel.toLowerCase()][un] !== 'undefined') ? this.mergeUserData(this.__currentUserData[channel.toLowerCase()][un], data[i]) : data[i];
         }
         this.__currentUserData[channel.toLowerCase()] = fud;
     },
@@ -163,6 +167,9 @@ api.user_manager = {
     getUserByName: function (channel, username) {
         this.__currentUserData[channel.toLowerCase()] = this.__currentUserData[channel.toLowerCase()] || {};
         return this.__currentUserData[channel.toLowerCase()][username.toLowerCase()];
+    },
+    isBot: function (userData) {
+        return api.botName[userData.channel.toLowerCase()] && userData.username.toLowerCase() === api.botName[userData.channel.toLowerCase()].toLowerCase();
     }
 };
 
@@ -172,10 +179,9 @@ api.timeout_manager = {
     __defaultMs: 15000,
     getTimeoutTime: function (channel, id) {
         this.__currentTimeoutsTimes[channel.toLowerCase()] = this.__currentTimeoutsTimes[channel.toLowerCase()] || {};
-        return this.__currentTimeoutsTimes[channel.toLowerCase()][id] = (typeof this.__currentTimeoutsTimes[channel.toLowerCase()][id] !== 'undefined') ? this.__currentTimeoutsTimes[channel.toLowerCase()][id] : 0;
+        return this.__currentTimeoutsTimes[channel.toLowerCase()][id] = this.__currentTimeoutsTimes[channel.toLowerCase()][id] || 0;
     },
     checkTimeout: function (channel, id, defaultMs) {
-        this.__currentTimeoutsTimes[channel.toLowerCase()] = this.__currentTimeoutsTimes[channel.toLowerCase()] || {};
         if (Date.now() - this.getTimeoutTime(channel, id) > this.getTimeoutMs(channel, id, defaultMs)) {
             this.__currentTimeoutsTimes[channel.toLowerCase()][id] = Date.now();
             return true;
@@ -197,7 +203,7 @@ api.timeout_manager = {
     getTimeoutMs: function (channel, id, defaultMs) {
         this.__timeoutMsCache = store.getItem("timeouts") || {};
         this.__timeoutMsCache[channel.toLowerCase()] = this.__timeoutMsCache[channel.toLowerCase()] || {};
-        return (typeof this.__timeoutMsCache[channel.toLowerCase()][id] !== 'undefined') ? this.__timeoutMsCache[channel.toLowerCase()][id] : (typeof defaultMs !== 'undefined' ? defaultMs : this.__defaultMs);
+        return this.__timeoutMsCache[channel.toLowerCase()][id] || (typeof defaultMs !== 'undefined' ? defaultMs : this.__defaultMs);
     },
     saveTimeoutMs: function () {
         store.setItem("timeouts", this.__timeoutMsCache);
@@ -327,7 +333,15 @@ function initSocket(token,channel) {
             api.Events.emit("userMsgDuplicate", api.user_manager.updateUserData(data));
         }
     }).on("meMsg", function (data) {
-        api.Events.emit("meMsg", data);
+        if(inputLog.indexOf(data.id) == -1){
+            inputLog.push(data.id);
+            if(inputLog.length > 50) inputLog.shift();
+            data.msg = entities.decode(data.msg);
+            data.channel = channel;
+            data.whisper = false;
+            data.me = true;
+            api.Events.emit("meMsg", api.user_manager.updateUserData(data));
+        }
     }).on("globalMsg", function (data) {
         api.Events.emit("globalMsg", data);
     }).on("clearChat", function () {
@@ -339,16 +353,10 @@ function initSocket(token,channel) {
     }).on("modList", function (data) {
         api.Events.emit("modList", data);
     }).on("whisper", function (data) {
-        if(inputLog.indexOf(data.id) == -1){
-            inputLog.push(data.id);
-            if(inputLog.length > 50) inputLog.shift();
-            data.msg = entities.decode(data.msg);
-            data.channel = channel;
-            data.whisper = true;
-            api.Events.emit("whisper", api.user_manager.updateUserData(data));
-        } else {
-            api.Events.emit("whisperDuplicate", api.user_manager.updateUserData(data));
-        }
+        data.msg = entities.decode(data.msg);
+        data.channel = channel;
+        data.whisper = true;
+        api.Events.emit("whisper", api.user_manager.updateUserData(data));
     }).on("color", function (data) {
         api.Events.emit("color", data);
     }).on("onlineState", function (data) {
@@ -504,6 +512,7 @@ if (token) {
     picarto.getToken(channel, name).then(function (res) {
         initSocket(res.token,channel);
         api.readOnly[channel.toLowerCase()] = res.readOnly;
+        api.botName[channel.toLowerCase()] = name;
         if (res.readOnly) console.log("Chat disabled guest login! Establishing ReadOnly Connection.");
     }).catch(function (reason) { console.log("Token acquisition failed: " + reason);});
 } else if (channel) {
@@ -521,6 +530,7 @@ if(config.channels && config.channels.length && !(config.channels.length === 1 &
             picarto.getToken(channel.channel, channel.name).then(function (res) {
                 initSocket(res.token,channel.channel);
                 api.readOnly[channel.channel.toLowerCase()] = res.readOnly;
+                api.botName[channel.toLowerCase()] = channel.name;
                 if(channel.muted){
                     api.mute_manager.mute(channel.channel);
                 }

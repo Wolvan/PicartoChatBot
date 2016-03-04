@@ -1,13 +1,6 @@
 var api;
 
-function newMessage(data) {
-    handleMessage(data, false);
-}
-function newWhisper(data) {
-    handleMessage(data, true);
-}
-
-function handleMessage(data, whisper) {
+function handleMessage(data) {
     if (data.msg.toLowerCase().startsWith("!")) {
         var pars = data.msg.split(' ');
         var cmd = pars[0].toLowerCase();
@@ -15,25 +8,26 @@ function handleMessage(data, whisper) {
         if (cmd === '!settimeout') {
             if (api.permissions_manager.userHasPermission(data, "cmd.settimeout") || api.permissions_manager.isOwner(data)) {
                 if (pars.length === 3 && isInt(pars[2])) {
+                    console.log(pars);
                     api.timeout_manager.setTimeout(data.channel, pars[1], parseInt(pars[2]));
-                    sendMessage("Set timeout " + pars[1] + " to " + pars[2], data.username, data.channel);
+                    sendMessage(data, "Set timeout " + pars[1] + " to " + pars[2], true);
                 } else {
-                    sendMessage("Usage: !settimeout <timeoutId> <timeoutMs>", data.username, data.channel);
+                    sendMessage(data, "Usage: !settimeout <timeoutId> <timeoutMs>", true);
                 }
             } else {
-                sendMessage("Sorry, you don't have permission to use this command.", data.username, data.channel);
+                sendMessage(data, "Sorry, you don't have permission to use this command.", true);
             }
         }
         if (cmd === '!resettimeout') {
             if (api.permissions_manager.userHasPermission(data, "cmd.resettimeout") || api.permissions_manager.isOwner(data)) {
                 if (pars.length === 2) {
                     api.timeout_manager.clearTimeout(data.channel, pars[1]);
-                    sendMessage("Cleared timeout " + pars[1], data.username, data.channel);
+                    sendMessage(data, "Cleared timeout " + pars[1], true);
                 } else {
-                    sendMessage("Usage: !settimeout <timeoutId>", data.username, data.channel);
+                    sendMessage(data, "Usage: !settimeout <timeoutId>", true);
                 }
             } else {
-                sendMessage("Sorry, you don't have permission to use this command.", data.username, data.channel);
+                sendMessage(data, "Sorry, you don't have permission to use this command.", true);
             }
         }
     }
@@ -45,11 +39,11 @@ function isInt(value) {
     })(parseFloat(value));
 }
 
-function sendMessage(txt, whisperUser, channel) {
-    if (typeof whisperUser !== 'undefined') {
-        api.Messages.whisper(whisperUser, txt, channel);
+function sendMessage(uData, txt, whisper) {
+    if (typeof whisper !== 'undefined' && whisper) {
+        api.Messages.whisper(uData.username, txt, uData.channel);
     } else {
-        api.Messages.send(txt, channel);
+        api.Messages.send(txt, uData.channel);
     }
 }
 
@@ -64,11 +58,11 @@ module.exports = {
         api = _api;
     },
     start: function () {
-        api.Events.on("userMsg", newMessage);
-        api.Events.on("whisper", newWhisper);
+        api.Events.on("userMsg", handleMessage);
+        api.Events.on("whisper", handleMessage);
     },
     stop: function () {
-        api.Events.removeListener("userMsg", newMessage);
-        api.Events.removeListener("whisper", newWhisper);
+        api.Events.removeListener("userMsg", handleMessage);
+        api.Events.removeListener("whisper", handleMessage);
     }
 }

@@ -1,0 +1,12 @@
+.header-breadcrumb
+    h1= page && page.header ? page.header : "PicartoChatBot"
+    ol.breadcrumb
+        - for (var x = 0; x === 0 || (page && page.breadcrumb && x < page.breadcrumb.length); x++)
+          - if (!(page && page.breadcrumb) && x === 0)
+            li.active Home
+          - else
+            - if (page && page.breadcrumb && x === page.breadcrumb.length - 1)
+              li.active= page.breadcrumb[x][1]
+            - else
+              li
+                a(href= page.breadcrumb[x][0])= page.breadcrumb[x][1]
