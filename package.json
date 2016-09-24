@@ -4,23 +4,11 @@
     "picarto-bot": "app.js"
   },
   "dependencies": {
-    "bluebird": "^3.2.2",
-    "cli-clear": "^1.0.4",
-    "columnify": "^1.5.4",
-    "commander": "^2.9.0",
-    "entities": "^1.1.1",
-    "jade": "^1.11.0",
-    "jsdom": "^8.0.2",
-    "node-persist": "0.0.8",
-    "require-reload": "^0.2.2",
-    "socket.io": "^1.4.5",
-    "socket.io-client": "^1.4.5",
-    "sync-request": "^3.0.0"
   },
-  "description": "PicartoChatListener",
+  "description": "Extendable Picarto Chat",
   "main": "app.js",
   "name": "picarto-chat-bot",
-  "version": "1.2.1",
+  "version": "2.0.0",
   "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
