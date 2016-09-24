@@ -1,0 +1,289 @@
+syntax = "proto3";
+
+message NewMessage {
+	string message = 1;
+}
+
+// Sends the userlist
+message UserList {
+	message User {
+		message UserData {
+			bool registered = 1;
+			bool moderator = 2;
+			bool streamer = 3;
+			bool ptv_admin = 4;
+			bool basic = 5;
+			bool premium = 6;
+			bool subscriber = 7;
+			string color = 8;
+			bool ignoring = 9;
+		}
+
+		message BanData {
+			bool is_shadow_ban = 1;
+		}
+
+		uint32 user_id = 1;
+		string display_name = 2;
+
+		oneof user_state {
+			UserData user_data = 3;
+			BanData ban_data = 4;
+		}
+	}
+	repeated User user = 1;
+}
+
+// Chat message
+message ChatMessage {
+	uint32 id = 1;
+	uint32 user_id = 2;
+	string display_name = 3;
+	string message = 4;
+	bool registered = 5;
+	bool moderator = 6;
+	bool streamer = 7;
+	bool ptv_admin = 8;
+	bool basic = 9;
+	bool premium = 10;
+	bool subscriber = 11;
+	string color = 12;
+	int64 time_stamp = 13;
+	bool is_me_message = 14;
+}
+
+// A global admin message
+message GlobalMessage {
+	string message = 1;
+}
+
+// Whisper message
+message Whisper {
+	uint32 id = 1;
+	uint32 user_id = 2;
+	string display_name = 3;
+	string message = 4;
+	bool incomming = 5; // Whether or not we are recieving this whisper (otherwise we sent it)
+	int64 time_stamp = 6;
+}
+
+// Server message
+message ServerMessage {
+	string message = 1;
+}
+
+// Command help
+message CommandHelp {
+	message Command {
+		repeated string triggers = 1;
+		string description = 2;
+	}
+
+	repeated Command commands = 1;
+}
+
+// Signals with no data sent by the server
+message Control {
+	enum MessageType {
+		END_HISTORY = 0; // No more history to send
+		KICK = 1; // User was kicked
+		GAMING = 2; // Enable/disable gaming mode
+		ADULT = 3; // Enable/disable adult mode
+		COMMISSIONS = 4; // Enable/disable commissions
+		COMMISSION_DESCRIPTION = 5; // Commission description update
+		DESCRIPTION = 6; // Description update
+		CONTENT_TYPE = 7; // Update content type/category
+		CAN_TALK = 8; // Can the user talk
+		SHOW_POLL_CREATOR = 9; // Show the poll creator
+		SHOW_RAFFLE_CREATOR = 10; // Show the raffle creator
+	}
+	MessageType message_type = 1;
+	bool data_bool = 2;
+}
+
+// Admin control messages - PTVAdmin-sent signals
+message AdminControl {
+	enum MessageType {
+		ADULT = 0; // Admins announce channel is unmarked
+		GAMING = 1; // Admins announce gaming has issues
+		MOVIE = 2; // Admins announce video is too large
+	}
+	MessageType message_type = 1;
+}
+
+// Online status of a channel
+message OnlineState {
+	bool is_live = 1;
+	uint32 viewers = 2;
+	uint32 channel = 3;
+	string channel_name = 4;
+}
+
+// Update the clients on current multistream status
+message Multistream {
+	message Channel {
+		uint32 channel = 1;
+		string channel_name = 2;
+	}
+	Channel host = 1;
+	repeated Channel guests = 2;
+}
+
+// Update a color client->server and server->client
+message Color {
+	string color = 1;
+}
+
+// When the ignore list is updated
+message IgnoresUpdated {
+	repeated string ignores = 1;
+}
+
+// Adding/removing an ignore client->server
+message ModifyIgnores {
+	string ignore_name = 1;
+	bool is_adding = 2; // If false, removing
+}
+
+// When a message is removed
+message RemoveMessage {
+	uint32 id = 1;
+	uint32 executioner_id = 2;
+	string executioner_display_name = 3;
+}
+
+// When all messages of a user are cleared
+message ClearUserMessages {
+	string username = 1; // May choose to switch to display_name
+	uint32 executioner_id = 2;
+	string executioner_display_name = 3;
+}
+
+// When all nessage history is cleared
+message ClearHistory {
+	uint32 executioner_id = 1;
+	string executioner_display_name = 2;
+}
+
+// When a user is kicked
+message Kick {
+	uint32 user_id = 1;
+	string display_name = 2;
+	uint32 executioner_id = 3;
+	string executioner_display_name = 4;
+}
+
+// When a user is banned
+message Ban {
+	uint32 user_id = 1;
+	string display_name = 2;
+	uint32 executioner_id = 3;
+	string executioner_display_name = 4;
+	bool is_shadow_ban = 5;
+}
+
+// When a user is unbanned
+message UnBan {
+	uint32 user_id = 1;
+	string display_name = 2;
+	uint32 executioner_id = 3;
+	string executioner_display_name = 4;
+}
+
+// When a user is modded/unmodded
+message Mod {
+	uint32 user_id = 1;
+	string display_name = 2;
+	bool is_now_mod = 3;
+}
+
+// A list of all moderators
+message ModList {
+	message Moderator {
+		uint32 user_id = 1;
+		string display_name = 2;
+	}
+	repeated Moderator moderators = 1;
+}
+
+// Start a raffle client->server
+message RaffleInit {
+	repeated string names = 1;
+}
+
+// When a raffle is run
+message RaffleRun {
+	string winner = 1;
+	repeated string names = 2;
+	uint32 host_id = 3;
+	string host_display_name = 4;
+}
+
+// Start a poll client->server and server->client
+message PollInit {
+	string question = 1;
+	repeated string options = 2;
+	uint32 host_id = 3;
+	string host_display_name = 4;
+}
+
+// Send poll updates
+message PollUpdate {
+	repeated int32 votes = 1;
+	uint32 host_id = 2;
+	string host_display_name = 3;
+}
+
+// When a poll is finished
+message PollResult {
+	string question = 1;
+	string winner = 2;
+	int32 votes = 3;
+	uint32 host_id = 4;
+	string host_display_name = 5;
+}
+
+// Poll vote client->server
+message PollVote {
+	uint32 option = 1;
+}
+
+// Poll vote confirmation
+message PollVoteResponse {
+	bool success = 1;
+}
+
+// Set a name client->server
+message SetName {
+	string name = 1;
+}
+
+// Confirm your name was set (if response is non-empty, something went wrong)
+message NameConfirmation {
+	string response = 1;
+}
+
+// When mod tools should change type
+message ModTools {
+	enum ModToolsType {
+		NONE = 0;
+		MODERATOR = 1;
+		STREAMER = 2;
+		PTV_ADMIN = 3;
+	}
+	ModToolsType mod_tools_type = 1;
+}
+
+// End a poll client->server
+message PollEnd {
+}
+
+// A reminder set by the streamer
+message Reminder {
+	string message = 1;
+}
+
+// A timer set by the streamer
+message Timer {
+	string message = 1;
+}
