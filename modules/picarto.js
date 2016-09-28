@@ -103,63 +103,7 @@ function getChannel(stream) {
     return stream
 }
 
-function getToken(stream, name) {
-    return new Promise(function (resolve, reject) {
-        jsdom.env({
-            url: "https://picarto.tv/" + getChannel(stream),
-            features: {
-                FetchExternalResources: ["script"],
-                ProcessExternalResources: ["script"]
-            },
-            done: function (error, window) {
-                if (error) { console.log(error); reject("jsdom error"); }
-                var $ = window.$;
-                if ($("#bottomLeft #chat_disabled_info").length) {
-                    getROToken(stream).then(function (res) {
-                        resolve({
-                            token: res.token, 
-                            readOnly: res.readOnly
-                        });
-                    }).catch(function (err) {
-                        reject(err);
-                    });
-                    return;
-                }
-                var sock = window.socket;
-                try {
-                    sock.removeAllListeners("nameResp");
-                    sock.on("nameResp", function (a) {
-                        if (a === true) {
-                            $.post("/process/channel", {
-                                setusername: name
-                            }).done(function (resp) {
-                                if (resp === "ok") {
-                                    sock.disconnect();
-                                    $.get("/modules/channel-chat", function (a) {
-                                        $("#channel_chat").html(a);
-                                        resolve({
-                                            token: getTokenFromHTML($("body").html()), 
-                                            readOnly: false
-                                        });
-                                    });
-                                } else {
-                                    reject(resp);
-                                }
-                            });
-                        } else {
-                            reject(a);
-                        }
-                    });
-                    sock.emit("setName", name);
-                } catch (e) {
-                    reject("channelDoesNotExist");
-                }
-            }
-        });
-    })
-}
-
-function getROToken(stream) {
+function getToken(stream) {
     return new Promise(function (resolve, reject) {
         jsdom.env({
             url: "https://picarto.tv/" + getChannel(stream),
@@ -339,4 +283,6 @@ module.exports = picarto_connection;
 module.exports.getTokenFromHTML = getTokenFromHTML;
 module.exports.getChannel = getChannel;
 module.exports.getToken = getToken;
-module.exports.getROToken = getROToken;
+module.exports.protocol = ProtoBufJS.loadProtoFile("./resources/picarto_protocol.proto").build();
+module.exports.DataTypeMapping = DataTypeMapping;
+module.exports.TypeDataMapping = TypeDataMapping;
