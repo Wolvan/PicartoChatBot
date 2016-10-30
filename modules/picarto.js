@@ -86,179 +86,179 @@ var ProtoBufJS = require("protobufjs");
 var ws = require("ws");
 var EventEmitter2 = require("eventemitter2").EventEmitter2;
 var defaultEE2Options = {
-    wildcard: true,
-    newListener: false,
-    maxListeners: 0
+	wildcard: true,
+	newListener: false,
+	maxListeners: 0
 };
 
 function getTokenFromHTML(body) {
-    var func = body.match(/initChatVariables(.*);/)[0];
-    var getLastApostrophe = func.lastIndexOf("'");
-    var token = func.substring(func.lastIndexOf("'", getLastApostrophe - 1) + 1, getLastApostrophe);
-    return token;
+	var func = body.match(/initChatVariables(.*);/)[0];
+	var getLastApostrophe = func.lastIndexOf("'");
+	var token = func.substring(func.lastIndexOf("'", getLastApostrophe - 1) + 1, getLastApostrophe);
+	return token;
 }
 
 function getChannel(stream) {
-    if (stream.indexOf("picarto.tv") !== -1) {
-        stream = stream.substring(stream.lastIndexOf("/") + 1);
-    }
-    return stream
+	if (stream.indexOf("picarto.tv") !== -1) {
+		stream = stream.substring(stream.lastIndexOf("/") + 1);
+	}
+	return stream
 }
 
 function getToken(stream) {
-    return new Promise(function (resolve, reject) {
-        jsdom.env({
-            url: "https://picarto.tv/" + getChannel(stream),
-            features: {
-                FetchExternalResources: ["script"],
-                ProcessExternalResources: ["script"]
-            },
-            done: function (error, window) {
-                if (error) { console.log(error); reject("jsdom error"); }
-                try {
-                    var $ = window.$;
-                    resolve({
-                        token: getTokenFromHTML($("body").html())
-                    });
-                } catch (e) {
-                    reject("channelDoesNotExist");
-                }
-            }
-        });
-    })
+	return new Promise(function (resolve, reject) {
+		jsdom.env({
+			url: "https://picarto.tv/" + getChannel(stream),
+			features: {
+				FetchExternalResources: ["script"],
+				ProcessExternalResources: ["script"]
+			},
+			done: function (error, window) {
+				if (error) { console.log(error); reject("jsdom error"); }
+				try {
+					var $ = window.$;
+					resolve({
+						token: getTokenFromHTML($("body").html())
+					});
+				} catch (e) {
+					reject("channelDoesNotExist");
+				}
+			}
+		});
+	})
 }
 
 function picarto_connection(_token, _debug) {
-    var picarto = this;
-    picarto.protobuilder = ProtoBufJS.loadProtoFile("./resources/picarto_protocol.proto");
-    picarto.protocol = picarto.protobuilder.build();
-    picarto.Events = new EventEmitter2(defaultEE2Options);
-    picarto.WebSocket = null;
-    picarto.state = {
-        Reconnecting: false,
-        Connecting: false,
-        Connected: false
-    };
-    picarto.options = {
-        preventReconnect: false,
-        reconnectTimeout: 5,
-        token: encodeURIComponent(_token),
-        srvAdr: serverAddr,
-        debug: _debug
-    };
-    picarto.Events.onAny(function dbg(event, data) {
-        if (picarto.options.debug) {
-            console.log("PicartoDebug: %s %s", event, JSON.stringify(data) || "null");
-        }
-    });
-    picarto.chat_state = {
-        users: [],
-        canTalk: false
-    };
+	var picarto = this;
+	picarto.protobuilder = ProtoBufJS.loadProtoFile("./resources/picarto_protocol.proto");
+	picarto.protocol = picarto.protobuilder.build();
+	picarto.Events = new EventEmitter2(defaultEE2Options);
+	picarto.WebSocket = null;
+	picarto.state = {
+		Reconnecting: false,
+		Connecting: false,
+		Connected: false
+	};
+	picarto.options = {
+		preventReconnect: false,
+		reconnectTimeout: 5,
+		token: encodeURIComponent(_token),
+		srvAdr: serverAddr,
+		debug: _debug
+	};
+	picarto.Events.onAny(function dbg(event, data) {
+		if (picarto.options.debug) {
+			console.log("PicartoDebug: %s %s", event, JSON.stringify(data) || "null");
+		}
+	});
+	picarto.chat_state = {
+		users: [],
+		canTalk: false
+	};
 }
 
 picarto_connection.prototype.connect = function() {
-    if (this.state.Connected || this.state.Connecting || this.state.Reconnecting) return;
-    var picarto = this;
-    
-    var WS = new ws(picarto.options.srvAdr + "socket?token=" + picarto.options.token);
-    picarto.WebSocket = WS;
-    WS.binaryType = "arraybuffer";
-    picarto.state.Connecting = true;
+	if (this.state.Connected || this.state.Connecting || this.state.Reconnecting) return;
+	var picarto = this;
+	
+	var WS = new ws(picarto.options.srvAdr + "socket?token=" + picarto.options.token);
+	picarto.WebSocket = WS;
+	WS.binaryType = "arraybuffer";
+	picarto.state.Connecting = true;
 
-    WS.on("open", function () {
-        var Event = picarto.state.Reconnecting ? "reconnected" : "connected";
-        
-        picarto.state.Reconnecting = false;
-        picarto.state.Connecting = false;
-        picarto.state.Connected = true;
-        
-        picarto.Events.emit(Event);
-    });
-    WS.on("close", function (code, message) {
-        if (picarto.state.Reconnecting) return;
-        
-        picarto.state.Connected = false;
-        picarto.state.Connecting = false;
-        
-        if (picarto.options.preventReconnect) {
-            picarto.state.Reconnecting = false;
-            picarto.Events.emit("disconnected", { reason: message, code: code });
-        } else {
-            picarto.Events.emit("socketClosed", new Error("Unexpected Socket close"));
-            picarto.state.Reconnecting = true;
-            picarto.reconnectTimer = setTimeout(function () {
-                picarto.state.Reconnecting = false;
-                picarto.connect();
-            }, picarto.options.reconnectTimeout * 1000);
-        }
-    });
-    WS.on("error", function () {
-        if (picarto.options.preventReconnect) {
-            picarto.options.preventReconnect = false;
-            return;
-        }
-        
-        picarto.Events.emit("error", new Error("Websocket Error"));
-        
-        picarto.state.Connecting = false;
-        picarto.state.Connected = false;
-        picarto.state.Reconnecting = true;
-        
-        picarto.reconnectTimer = setTimeout(function () {
-            picarto.state.Reconnecting = false;
-            picarto.connect();
-        }, picarto.options.reconnectTimeout * 1000);
-    });
-    WS.on("message", function (evt) {
-        var data = new Uint8Array(evt);
-        var signalName = DataTypeMapping[data[0]];
-        if (!signalName) return;
+	WS.on("open", function () {
+		var Event = picarto.state.Reconnecting ? "reconnected" : "connected";
+		
+		picarto.state.Reconnecting = false;
+		picarto.state.Connecting = false;
+		picarto.state.Connected = true;
+		
+		picarto.Events.emit(Event);
+	});
+	WS.on("close", function (code, message) {
+		if (picarto.state.Reconnecting) return;
+		
+		picarto.state.Connected = false;
+		picarto.state.Connecting = false;
+		
+		if (picarto.options.preventReconnect) {
+			picarto.state.Reconnecting = false;
+			picarto.Events.emit("disconnected", { reason: message, code: code });
+		} else {
+			picarto.Events.emit("socketClosed", new Error("Unexpected Socket close"));
+			picarto.state.Reconnecting = true;
+			picarto.reconnectTimer = setTimeout(function () {
+				picarto.state.Reconnecting = false;
+				picarto.connect();
+			}, picarto.options.reconnectTimeout * 1000);
+		}
+	});
+	WS.on("error", function () {
+		if (picarto.options.preventReconnect) {
+			picarto.options.preventReconnect = false;
+			return;
+		}
+		
+		picarto.Events.emit("error", new Error("Websocket Error"));
+		
+		picarto.state.Connecting = false;
+		picarto.state.Connected = false;
+		picarto.state.Reconnecting = true;
+		
+		picarto.reconnectTimer = setTimeout(function () {
+			picarto.state.Reconnecting = false;
+			picarto.connect();
+		}, picarto.options.reconnectTimeout * 1000);
+	});
+	WS.on("message", function (evt) {
+		var data = new Uint8Array(evt);
+		var signalName = DataTypeMapping[data[0]];
+		if (!signalName) return;
 
-        var output = picarto.protocol[signalName].decode(data.slice(1));
-        
-        if (signalName == "Control") {
-            switch (output.messageType) {
-                case picarto.protocol.Control.MessageType.KICK:
-                    picarto.options.preventReconnect = true;
-                    break;
-                case picarto.protocol.Control.MessageType.CAN_TALK:
-                    picarto.chat_state.canTalk = output.data_bool;
-                    break;
-            }
-        } else if (signalName == "UserList") {
-            picarto.chat_state.users = output.user;
-        }
-        
-        picarto.Events.emit(signalName, output);
-    });
+		var output = picarto.protocol[signalName].decode(data.slice(1));
+		
+		if (signalName == "Control") {
+			switch (output.messageType) {
+				case picarto.protocol.Control.MessageType.KICK:
+					picarto.options.preventReconnect = true;
+					break;
+				case picarto.protocol.Control.MessageType.CAN_TALK:
+					picarto.chat_state.canTalk = output.data_bool;
+					break;
+			}
+		} else if (signalName == "UserList") {
+			picarto.chat_state.users = output.user;
+		}
+		
+		picarto.Events.emit(signalName, output);
+	});
 }
 
 picarto_connection.prototype.disconnect = function () {
-    this.options.preventReconnect = true;
-    
-    if (this.state.Reconnecting) {
-        clearTimeout(this.reconnectTimer);
-        this.state.Reconnecting = false;
-    } else if (this.state.Connecting || this.state.Connected) {
-        this.state.Reconnecting = false;
-        this.WebSocket.close();
-    }
+	this.options.preventReconnect = true;
+	
+	if (this.state.Reconnecting) {
+		clearTimeout(this.reconnectTimer);
+		this.state.Reconnecting = false;
+	} else if (this.state.Connecting || this.state.Connected) {
+		this.state.Reconnecting = false;
+		this.WebSocket.close();
+	}
 }
 
 picarto_connection.prototype.sendSignal = function (signalname, data) {
-    if (!this.state.Connected) return;
+	if (!this.state.Connected) return;
 
-    var signalID = TypeDataMapping[signalname];
-    if (!signalID) return;
+	var signalID = TypeDataMapping[signalname];
+	if (!signalID) return;
 
 	var protobuf = new this.protocol[signalname](data || {});
-    var rawData = protobuf.toBuffer();
-    var binaryData = new Uint8Array(rawData.length + 1);
-    binaryData[0] = signalID;
-    binaryData.set(rawData, 1);
+	var rawData = protobuf.toBuffer();
+	var binaryData = new Uint8Array(rawData.length + 1);
+	binaryData[0] = signalID;
+	binaryData.set(rawData, 1);
 
-    this.WebSocket.send(binaryData.buffer);
+	this.WebSocket.send(binaryData.buffer);
 }
 
 module.exports = picarto_connection;

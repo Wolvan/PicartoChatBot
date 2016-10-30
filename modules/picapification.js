@@ -2,9 +2,9 @@
 
 var EventEmitter2 = require("eventemitter2").EventEmitter2;
 var defaultEE2Options = {
-    wildcard: true,
-    newListener: false,
-    maxListeners: 0
+	wildcard: true,
+	newListener: false,
+	maxListeners: 0
 };
 
 /**
