@@ -118,8 +118,7 @@ function getToken(stream) {
                 try {
                     var $ = window.$;
                     resolve({
-                        token: getTokenFromHTML($("body").html()), 
-                        readOnly: true
+                        token: getTokenFromHTML($("body").html())
                     });
                 } catch (e) {
                     reject("channelDoesNotExist");
@@ -247,38 +246,19 @@ picarto_connection.prototype.disconnect = function () {
     }
 }
 
-picarto_connection.prototype.sendData = function (signalname, data) {
+picarto_connection.prototype.sendSignal = function (signalname, data) {
     if (!this.state.Connected) return;
 
     var signalID = TypeDataMapping[signalname];
     if (!signalID) return;
 
-    var rawData = data.toBuffer();
+	var protobuf = new this.protocol[signalname](data || {});
+    var rawData = protobuf.toBuffer();
     var binaryData = new Uint8Array(rawData.length + 1);
     binaryData[0] = signalID;
     binaryData.set(rawData, 1);
 
     this.WebSocket.send(binaryData.buffer);
-}
-
-picarto_connection.prototype.sendMessage = function (message) {
-    this.sendData("NewMessage", new con.protocol["NewMessage"]({
-        message: message
-    }));
-}
-
-picarto_connection.prototype.setName = function (name) {
-    this.sendData("SetName", new con.protocol["SetName"]({
-        name: name
-    }));
-}
-
-picarto_connection.prototype.setColor = function (hexstring) {
-    var color = hexstring;
-    if (color.charAt(0) === "#") color = color.substring(1);
-    this.sendData("Color", new con.protocol["Color"]({
-        color: color
-    }));
 }
 
 module.exports = picarto_connection;
