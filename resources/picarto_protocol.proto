@@ -1,5 +1,6 @@
 syntax = "proto3";
 
+// Chat message client->server
 message NewMessage {
 	string message = 1;
 }
@@ -96,6 +97,7 @@ message Control {
 		CAN_TALK = 8; // Can the user talk
 		SHOW_POLL_CREATOR = 9; // Show the poll creator
 		SHOW_RAFFLE_CREATOR = 10; // Show the raffle creator
+		NAME_TAKEN = 11; // The name you have picked has already been taken
 	}
 	MessageType message_type = 1;
 	bool data_bool = 2;
@@ -237,7 +239,7 @@ message PollUpdate {
 // When a poll is finished
 message PollResult {
 	string question = 1;
-	repeated string winner = 2;
+	repeated string winners = 2;
 	int32 votes = 3;
 	uint32 host_id = 4;
 	string host_display_name = 5;
@@ -286,4 +288,11 @@ message Reminder {
 // A timer set by the streamer
 message Timer {
 	string message = 1;
+}
+
+// A wrapper for messages for the monitor client
+message MonitorData {
+	bytes message_content = 1;
+	uint32 channel = 2;
+	string channel_name = 3;
 }
