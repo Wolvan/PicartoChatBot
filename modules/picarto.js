@@ -38,7 +38,8 @@ var TypeDataMapping = {
 	PollEnd: 32,
 	Reminder: 33,
 	Timer : 34,
-	MonitorData : 35
+	MonitorData : 35,
+	ChatLevel: 36
 };
 
 var DataTypeMapping = {
@@ -77,7 +78,8 @@ var DataTypeMapping = {
 	32: 'PollEnd',
 	33: 'Reminder',
 	34 : "Timer",
-	35 : "MonitorData"
+	35 : "MonitorData",
+	36: "ChatLevel" 
 };
 
 var jsdom = require("jsdom");

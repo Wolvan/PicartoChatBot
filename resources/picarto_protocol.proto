@@ -296,3 +296,16 @@ message MonitorData {
 	uint32 channel = 2;
 	string channel_name = 3;
 }
+
+// When the chat level has changed (who can talk)
+message ChatLevel {
+	enum ChatLevelType {
+		EVERYONE = 0; // Everyone can talk
+		STREAMER = 1; // Only the streamer can talk
+		STREAMER_MODERATOR = 2; // Only the streamer and moderators can talk
+		STREAMER_MODERATOR_SUBSCRIBER = 3; // Only the streamer, moderators and subscribers can talk
+		STREAMER_MODERATOR_FOLLOWER = 4; // Only the streamer, moderators and followers can talk
+		STREAMER_MODERATOR_SUBSCRIBER_FOLLOWER = 5; // Only the streamer, moderators, subscribers and followers can talk
+	}
+	ChatLevelType chat_level = 1;
+}
