@@ -53,7 +53,9 @@ module.exports = function (picarto_connector) {
 	 * @param {string} message The message to send
 	*/
 	api.whisper = function(username, message) {
-		// TODO: Fix this. Somehow. Probably ask how whispers are sent exactly
+		sendSignal("NewMessage", {
+			message: "/w " + username + " " + message
+		});
 	}
 	api.Messages = {
 		send: api.sendMessage
@@ -98,9 +100,7 @@ module.exports = function (picarto_connector) {
 		init: function(question, answers) {
 			sendSignal("PollInit", {
 				question: question,
-				options: answers,
-				host_id: 0, // TODO: FIX THIS
-				host_display_name: "null" // TODO: FIX THIS
+				options: answers
 			});
 		},
 		/**
