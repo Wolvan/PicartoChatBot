@@ -1,4 +1,4 @@
-﻿'use strict';
+'use strict';
 
 var serverAddr = "http://pika.tech/";
 
@@ -37,8 +37,8 @@ var TypeDataMapping = {
 	ModTools: 31,
 	PollEnd: 32,
 	Reminder: 33,
-	Timer : 34,
-	MonitorData : 35,
+	Timer: 34,
+	MonitorData: 35,
 	ChatLevel: 36
 };
 
@@ -77,12 +77,12 @@ var DataTypeMapping = {
 	31: 'ModTools',
 	32: 'PollEnd',
 	33: 'Reminder',
-	34 : "Timer",
-	35 : "MonitorData",
-	36: "ChatLevel" 
+	34: "Timer",
+	35: "MonitorData",
+	36: "ChatLevel"
 };
 
-var jsdom = require("jsdom");
+var request = require("request");
 var Promise = require("bluebird");
 var ProtoBufJS = require("protobufjs");
 var ws = require("ws");
@@ -104,30 +104,82 @@ function getChannel(stream) {
 	if (stream.indexOf("picarto.tv") !== -1) {
 		stream = stream.substring(stream.lastIndexOf("/") + 1);
 	}
-	return stream
+	return stream;
 }
 
-function getToken(stream) {
+function getToken(stream, cookieJar) {
+	var cookieJar = cookieJar || request.jar();
 	return new Promise(function (resolve, reject) {
-		jsdom.env({
-			url: "https://picarto.tv/" + getChannel(stream),
-			features: {
-				FetchExternalResources: ["script"],
-				ProcessExternalResources: ["script"]
-			},
-			done: function (error, window) {
-				if (error) { console.log(error); reject("jsdom error"); }
-				try {
-					var $ = window.$;
-					resolve({
-						token: getTokenFromHTML($("body").html())
-					});
-				} catch (e) {
-					reject("channelDoesNotExist");
-				}
+		request({
+			uri: "https://picarto.tv/" + getChannel(stream),
+			jar: cookieJar,
+			headers: {'Referer': 'https://www.picarto.tv/'}
+		}, function (error, response, body) {
+
+			if (error) {
+				reject(error);
+				return;
+			}
+
+			if (!response || (response.statusCode !== 200 && response.statusCode !== 302)) {
+				reject(new Error('Unexpected status code while fetching auth token: ' + response.statusCode));
+				return;
+			}
+
+			var authToken = getTokenFromHTML(body);
+			if (!authToken) {
+				reject( new Error('Error parsing auth token'));
+			} else {
+				resolve(authToken);
 			}
 		});
-	})
+	});
+}
+
+function getAuthedCookieJar(username, password) {
+	var cookieJar = request.jar();
+	return new Promise(function (resolve, reject) {
+		request({
+			uri: 'https://picarto.tv/process/login',
+			method: 'POST',
+			form: {username: username, password: password, staylogged: true},
+			jar: cookieJar,
+			headers: {'Referer': 'https://www.picarto.tv/'}
+		}, function (error, response, body) {
+			
+			if (error) {
+				reject(error);
+				return;
+			}
+
+			if (!response || (response.statusCode !== 200 && response.statusCode !== 302)) {
+				reject(new Error('Unexpected status code while logging in: ' + response.statusCode));
+				return;
+			}
+			
+			var loginResult;
+			try {
+				loginResult = JSON.parse(body);
+			}
+			catch(e) {
+				
+				reject(new Error('Error parsing login response: ' + body));
+				return;
+			}
+			
+			if (loginResult.loginstatus) {
+				resolve(cookieJar);
+			} else {
+				reject(new Error('Invalid username or password'));
+			}
+		});
+	});
+}
+
+function getAuthedToken(stream, username, password) {
+	return getAuthedCookieJar(username, password).then(function (cookieJar) {
+		return getToken(stream, cookieJar);
+	});
 }
 
 function picarto_connection(_token, _debug) {
@@ -267,6 +319,8 @@ module.exports = picarto_connection;
 module.exports.getTokenFromHTML = getTokenFromHTML;
 module.exports.getChannel = getChannel;
 module.exports.getToken = getToken;
+module.exports.getAuthedCookieJar = getAuthedCookieJar;
+module.exports.getAuthedToken = getAuthedToken;
 module.exports.protocol = ProtoBufJS.loadProtoFile("./resources/picarto_protocol.proto").build();
 module.exports.DataTypeMapping = DataTypeMapping;
 module.exports.TypeDataMapping = TypeDataMapping;
