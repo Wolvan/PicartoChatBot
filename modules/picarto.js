@@ -1,6 +1,6 @@
 'use strict';
 
-var serverAddr = "http://pika.tech/";
+var serverAddr = "wss://nd2.picarto.tv/";
 
 var TypeDataMapping = {
 	AdminControl: 0,
@@ -209,110 +209,108 @@ function picarto_connection(_token, _debug) {
 		users: [],
 		canTalk: false
 	};
-}
-
-picarto_connection.prototype.connect = function() {
-	if (this.state.Connected || this.state.Connecting || this.state.Reconnecting) return;
-	var picarto = this;
 	
-	var WS = new ws(picarto.options.srvAdr + "socket?token=" + picarto.options.token);
-	picarto.WebSocket = WS;
-	WS.binaryType = "arraybuffer";
-	picarto.state.Connecting = true;
+	picarto.sendSignal = function (signalname, data) {
+		if (!picarto.state.Connected) return;
 
-	WS.on("open", function () {
-		var Event = picarto.state.Reconnecting ? "reconnected" : "connected";
+		var signalID = TypeDataMapping[signalname];
+		if (!signalID) return;
+
+		var protobuf = new picarto.protocol[signalname](data || {});
+		var rawData = protobuf.toBuffer();
+		var binaryData = new Uint8Array(rawData.length + 1);
+		binaryData[0] = signalID;
+		binaryData.set(rawData, 1);
+
+		picarto.WebSocket.send(binaryData.buffer);
+	}
+
+	picarto.connect = function() {
+		if (picarto.state.Connected || picarto.state.Connecting || picarto.state.Reconnecting) return;
 		
-		picarto.state.Reconnecting = false;
-		picarto.state.Connecting = false;
-		picarto.state.Connected = true;
-		
-		picarto.Events.emit(Event);
-	});
-	WS.on("close", function (code, message) {
-		if (picarto.state.Reconnecting) return;
-		
-		picarto.state.Connected = false;
-		picarto.state.Connecting = false;
-		
-		if (picarto.options.preventReconnect) {
+		var WS = new ws(picarto.options.srvAdr + "socket?token=" + picarto.options.token);
+		picarto.WebSocket = WS;
+		WS.binaryType = "arraybuffer";
+		picarto.state.Connecting = true;
+
+		WS.on("open", function () {
+			var Event = picarto.state.Reconnecting ? "reconnected" : "connected";
+			
 			picarto.state.Reconnecting = false;
-			picarto.Events.emit("disconnected", { reason: message, code: code });
-		} else {
-			picarto.Events.emit("socketClosed", new Error("Unexpected Socket close"));
+			picarto.state.Connecting = false;
+			picarto.state.Connected = true;
+			
+			picarto.Events.emit(Event);
+		});
+		WS.on("close", function (code, message) {
+			if (picarto.state.Reconnecting) return;
+			
+			picarto.state.Connected = false;
+			picarto.state.Connecting = false;
+			
+			if (picarto.options.preventReconnect) {
+				picarto.state.Reconnecting = false;
+				picarto.Events.emit("disconnected", { reason: message, code: code });
+			} else {
+				picarto.Events.emit("socketClosed", new Error("Unexpected Socket close"));
+				picarto.state.Reconnecting = true;
+				picarto.reconnectTimer = setTimeout(function () {
+					picarto.state.Reconnecting = false;
+					picarto.connect();
+				}, picarto.options.reconnectTimeout * 1000);
+			}
+		});
+		WS.on("error", function () {
+			if (picarto.options.preventReconnect) {
+				picarto.options.preventReconnect = false;
+				return;
+			}
+			
+			picarto.Events.emit("error", new Error("Websocket Error"));
+			
+			picarto.state.Connecting = false;
+			picarto.state.Connected = false;
 			picarto.state.Reconnecting = true;
+			
 			picarto.reconnectTimer = setTimeout(function () {
 				picarto.state.Reconnecting = false;
 				picarto.connect();
 			}, picarto.options.reconnectTimeout * 1000);
-		}
-	});
-	WS.on("error", function () {
-		if (picarto.options.preventReconnect) {
-			picarto.options.preventReconnect = false;
-			return;
-		}
-		
-		picarto.Events.emit("error", new Error("Websocket Error"));
-		
-		picarto.state.Connecting = false;
-		picarto.state.Connected = false;
-		picarto.state.Reconnecting = true;
-		
-		picarto.reconnectTimer = setTimeout(function () {
-			picarto.state.Reconnecting = false;
-			picarto.connect();
-		}, picarto.options.reconnectTimeout * 1000);
-	});
-	WS.on("message", function (evt) {
-		var data = new Uint8Array(evt);
-		var signalName = DataTypeMapping[data[0]];
-		if (!signalName) return;
+		});
+		WS.on("message", function (evt) {
+			var data = new Uint8Array(evt);
+			var signalName = DataTypeMapping[data[0]];
+			if (!signalName) return;
 
-		var output = picarto.protocol[signalName].decode(data.slice(1));
-		
-		if (signalName == "Control") {
-			switch (output.messageType) {
-				case picarto.protocol.Control.MessageType.KICK:
-					picarto.options.preventReconnect = true;
-					break;
-				case picarto.protocol.Control.MessageType.CAN_TALK:
-					picarto.chat_state.canTalk = output.data_bool;
-					break;
+			var output = picarto.protocol[signalName].decode(data.slice(1));
+			
+			if (signalName == "Control") {
+				switch (output.messageType) {
+					case picarto.protocol.Control.MessageType.KICK:
+						picarto.options.preventReconnect = true;
+						break;
+					case picarto.protocol.Control.MessageType.CAN_TALK:
+						picarto.chat_state.canTalk = output.data_bool;
+						break;
+				}
+			} else if (signalName == "UserList") {
+				picarto.chat_state.users = output.user;
 			}
-		} else if (signalName == "UserList") {
-			picarto.chat_state.users = output.user;
-		}
-		
-		picarto.Events.emit(signalName, output);
-	});
-}
-
-picarto_connection.prototype.disconnect = function () {
-	this.options.preventReconnect = true;
-	
-	if (this.state.Reconnecting) {
-		clearTimeout(this.reconnectTimer);
-		this.state.Reconnecting = false;
-	} else if (this.state.Connecting || this.state.Connected) {
-		this.state.Reconnecting = false;
-		this.WebSocket.close();
+			
+			picarto.Events.emit(signalName, output);
+		});
 	}
-}
-
-picarto_connection.prototype.sendSignal = function (signalname, data) {
-	if (!this.state.Connected) return;
-
-	var signalID = TypeDataMapping[signalname];
-	if (!signalID) return;
-
-	var protobuf = new this.protocol[signalname](data || {});
-	var rawData = protobuf.toBuffer();
-	var binaryData = new Uint8Array(rawData.length + 1);
-	binaryData[0] = signalID;
-	binaryData.set(rawData, 1);
-
-	this.WebSocket.send(binaryData.buffer);
+	picarto.disconnect = function () {
+		picarto.options.preventReconnect = true;
+		
+		if (picarto.state.Reconnecting) {
+			clearTimeout(picarto.reconnectTimer);
+			picarto.state.Reconnecting = false;
+		} else if (picarto.state.Connecting || picarto.state.Connected) {
+			picarto.state.Reconnecting = false;
+			picarto.WebSocket.close();
+		}
+	}
 }
 
 module.exports = picarto_connection;

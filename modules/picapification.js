@@ -35,7 +35,7 @@ module.exports = function (picarto_connector) {
 	 * @param {string} name The name for this connection
 	*/
 	api.setName = function(name) {
-		this.sendSignal("SetName", {
+		sendSignal("SetName", {
 			name: name
 		});
 	}
@@ -58,7 +58,7 @@ module.exports = function (picarto_connector) {
 		});
 	}
 	api.Messages = {
-		send: api.sendMessage
+		send: api.sendMessage,
 		whisper: api.whisper
 	}
 	
